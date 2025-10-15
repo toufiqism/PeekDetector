@@ -23,6 +23,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -42,13 +43,13 @@ class PeekDetectionService : Service() {
     private var overlayView: View? = null
     private lateinit var windowManager: WindowManager
 
-    override fun onCreate() {
-        super.onCreate()
-        isRunning.value = true // Set state to running
-        cameraExecutor = Executors.newSingleThreadExecutor()
-        serviceLifecycleOwner.start()
-        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
-    }
+    // --- NEW: Constants and variables for alert notifications ---
+    private val ALERT_CHANNEL_ID = "peek_alert_channel"
+    private val ALERT_CHANNEL_NAME = "Peek Alerts"
+    private var lastAlertTimestamp: Long = 0
+    private var notificationIdCounter = 2 // Start at 2 since foreground service uses 1
+    // -----------------------------------------------------------
+
 
     private val imageAnalyzer by lazy {
         ImageAnalysis.Builder()
@@ -57,12 +58,73 @@ class PeekDetectionService : Service() {
             .also {
                 it.setAnalyzer(cameraExecutor, PeekDetectorAnalyzer { numFaces ->
                     if (numFaces > 1) {
-                        Log.d("PeekDetectionService", "PEEKING DETECTED!")
-                        triggerPeekAlertOverlay()
+                        // --- UPDATED: Throttled call to show notification ---
+                        val currentTime = System.currentTimeMillis()
+                        // Cooldown of 5 seconds to prevent notification spam
+                        if (currentTime - lastAlertTimestamp > 5000) {
+                            lastAlertTimestamp = currentTime
+                            showPeekAlertNotification()
+                        }
+                        // ----------------------------------------------------
                     }
                 })
             }
     }
+
+
+    override fun onCreate() {
+        super.onCreate()
+        isRunning.value = true // Set state to running
+        cameraExecutor = Executors.newSingleThreadExecutor()
+        serviceLifecycleOwner.start()
+        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        createAlertNotificationChannel()
+    }
+    // --- NEW: Function to create the alert channel ---
+    private fun createAlertNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                ALERT_CHANNEL_ID,
+                ALERT_CHANNEL_NAME,
+                NotificationManager.IMPORTANCE_HIGH // High importance for pop-up
+            ).apply {
+                description = "Notifications shown when a peek is detected."
+                enableVibration(true)
+            }
+            val notificationManager: NotificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+    // --------------------------------------------------
+
+    // --- NEW: Function to build and show the alert notification ---
+    private fun showPeekAlertNotification() {
+        val builder = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert) // Built-in alert icon
+            .setContentTitle("Peek Alert!")
+            .setContentText("Someone might be looking at your screen.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH) // For pop-up behavior
+            .setAutoCancel(true) // Dismiss notification on tap
+
+        with(NotificationManagerCompat.from(this)) {
+            // Use a unique ID for each notification to show multiple if needed
+            notify(notificationIdCounter++, builder.build())
+        }
+    }
+//    private val imageAnalyzer by lazy {
+//        ImageAnalysis.Builder()
+//            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+//            .build()
+//            .also {
+//                it.setAnalyzer(cameraExecutor, PeekDetectorAnalyzer { numFaces ->
+//                    if (numFaces > 1) {
+//                        Log.d("PeekDetectionService", "PEEKING DETECTED!")
+//                        triggerPeekAlertOverlay()
+//                    }
+//                })
+//            }
+//    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForegroundService()

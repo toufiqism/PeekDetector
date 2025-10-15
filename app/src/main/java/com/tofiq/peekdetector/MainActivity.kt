@@ -52,19 +52,28 @@ fun PeekAppScreen() {
 
     val context = LocalContext.current
     // ... (The permission handling logic remains exactly the same)
-    var hasCameraPermission by remember {
+
+    val permissionsToRequest = remember {
+        val permissions = mutableListOf(Manifest.permission.CAMERA)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        permissions.toTypedArray()
+    }
+
+    var hasAllPermissions by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
+            permissionsToRequest.all {
+                ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+            }
         )
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            hasCameraPermission = isGranted
+        contract = ActivityResultContracts.RequestMultiplePermissions(),
+        onResult = { permissionsMap ->
+            // Check if all requested permissions were granted
+            hasAllPermissions = permissionsMap.values.all { it }
         }
     )
 
@@ -75,15 +84,14 @@ fun PeekAppScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (hasCameraPermission) {
-            // --- UPDATED UI LOGIC ---
+        if (hasAllPermissions) {
             ServiceStatus(isServiceRunning)
             Spacer(modifier = Modifier.height(32.dp))
             ControlButtons(isServiceRunning, context)
-            // ------------------------
         } else {
-            // This permission request UI is unchanged
-            PermissionRequestUI(permissionLauncher,context)
+            PermissionRequestUI(
+                onGrantClick = { permissionLauncher.launch(permissionsToRequest) },context
+            )
         }
     }
 }
@@ -164,13 +172,13 @@ fun ControlButtons(isServiceRunning: Boolean, context: Context) {
 }
 
 @Composable
-fun PermissionRequestUI(launcher: ActivityResultLauncher<String>, context: Context) {
+fun PermissionRequestUI(onGrantClick: () -> Unit, context: Context) {
     Text("Camera Permission Required", style = MaterialTheme.typography.headlineSmall)
     Spacer(modifier = Modifier.height(8.dp))
     Text("This app needs camera access to detect faces.", textAlign = TextAlign.Center)
     Spacer(modifier = Modifier.height(16.dp))
     Button(onClick = {
-        launcher.launch(Manifest.permission.CAMERA)
+       onGrantClick
     }) {
         Text("Grant Permission")
     }
