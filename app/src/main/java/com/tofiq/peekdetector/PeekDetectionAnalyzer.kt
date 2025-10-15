@@ -25,6 +25,7 @@ class PeekDetectorAnalyzer(private val listener: (Int) -> Unit) : ImageAnalysis.
             detector.process(image)
                 .addOnSuccessListener { faces ->
                     listener(faces.size)
+                    Log.e("PeekDetectorAnalyzer", "Face detected: ${faces.size}")
                 }
                 .addOnFailureListener { e ->
                     Log.e("PeekDetectorAnalyzer", "Face detection failed", e)
