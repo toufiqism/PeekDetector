@@ -119,35 +119,6 @@ fun PeekAppScreen() {
 }
 
 @Composable
-fun ControlButtons(context: Context) {
-    Text(
-        "Service is ready. Start protection to monitor in the background.",
-        textAlign = TextAlign.Center
-    )
-    Spacer(modifier = Modifier.height(16.dp))
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly
-    ) {
-        Button(onClick = {
-            val intent = Intent(context, PeekDetectionService::class.java)
-            context.startService(intent)
-        }) {
-            Text("Start Protection")
-        }
-        Button(
-            onClick = {
-                val intent = Intent(context, PeekDetectionService::class.java)
-                context.stopService(intent)
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-        ) {
-            Text("Stop Protection")
-        }
-    }
-}
-
-@Composable
 fun ServiceStatus(isServiceRunning: Boolean) {
     Text(
         text = "Service Status",
