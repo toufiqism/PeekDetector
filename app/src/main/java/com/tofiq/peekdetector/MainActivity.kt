@@ -60,11 +60,32 @@ fun PeekAppScreen() {
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
+    
+    // Notification permission state (for Android 13+)
+    var hasNotificationPermission by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                true // Not required for older versions
+            }
+        )
+    }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
             hasCameraPermission = isGranted
+        }
+    )
+    
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            hasNotificationPermission = isGranted
         }
     )
 
@@ -75,15 +96,24 @@ fun PeekAppScreen() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        if (hasCameraPermission) {
-            // --- UPDATED UI LOGIC ---
-            ServiceStatus(isServiceRunning)
-            Spacer(modifier = Modifier.height(32.dp))
-            ControlButtons(isServiceRunning, context)
-            // ------------------------
-        } else {
-            // This permission request UI is unchanged
-            PermissionRequestUI(permissionLauncher,context)
+        when {
+            !hasCameraPermission -> {
+                // Camera permission request UI
+                PermissionRequestUI(cameraPermissionLauncher, context)
+            }
+            !hasNotificationPermission -> {
+                // Notification permission request UI
+                NotificationPermissionRequestUI(
+                    notificationPermissionLauncher,
+                    onSkip = { hasNotificationPermission = true }
+                )
+            }
+            else -> {
+                // Both permissions granted - show main UI
+                ServiceStatus(isServiceRunning)
+                Spacer(modifier = Modifier.height(32.dp))
+                ControlButtons(isServiceRunning, context)
+            }
         }
     }
 }
@@ -172,7 +202,7 @@ fun PermissionRequestUI(launcher: ActivityResultLauncher<String>, context: Conte
     Button(onClick = {
         launcher.launch(Manifest.permission.CAMERA)
     }) {
-        Text("Grant Permission")
+        Text("Grant Camera Permission")
     }
     // Check for "Draw over other apps" permission
     val canDrawOverlays = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -181,8 +211,9 @@ fun PermissionRequestUI(launcher: ActivityResultLauncher<String>, context: Conte
         true
     }
     if (!canDrawOverlays) {
+        Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "For alerts to work, please grant the 'Draw over other apps' permission.",
+            text = "For screen overlay alerts to work, please grant the 'Draw over other apps' permission.",
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.error
         )
@@ -197,6 +228,35 @@ fun PermissionRequestUI(launcher: ActivityResultLauncher<String>, context: Conte
             Text("Open Settings")
         }
         Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
+@Composable
+fun NotificationPermissionRequestUI(
+    launcher: ActivityResultLauncher<String>,
+    onSkip: () -> Unit
+) {
+    Text(
+        "Notification Permission Required", 
+        style = MaterialTheme.typography.headlineSmall,
+        textAlign = TextAlign.Center
+    )
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(
+        "This app needs notification permission to alert you when multiple faces are detected.",
+        textAlign = TextAlign.Center
+    )
+    Spacer(modifier = Modifier.height(16.dp))
+    Button(onClick = {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }) {
+        Text("Grant Notification Permission")
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+    TextButton(onClick = onSkip) {
+        Text("Skip (Can enable later in settings)")
     }
 }
 @Preview(showBackground = true)

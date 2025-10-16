@@ -41,6 +41,13 @@ class PeekDetectionService : Service() {
     // For the screen overlay alert
     private var overlayView: View? = null
     private lateinit var windowManager: WindowManager
+    
+    // Notification helper
+    private lateinit var notificationHelper: NotificationHelper
+    
+    // Track last notification time to avoid spam
+    private var lastNotificationTime: Long = 0
+    private val notificationCooldown = 5000L // 5 seconds cooldown
 
     override fun onCreate() {
         super.onCreate()
@@ -48,6 +55,7 @@ class PeekDetectionService : Service() {
         cameraExecutor = Executors.newSingleThreadExecutor()
         serviceLifecycleOwner.start()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        notificationHelper = NotificationHelper(this)
     }
 
     private val imageAnalyzer by lazy {
@@ -57,8 +65,9 @@ class PeekDetectionService : Service() {
             .also {
                 it.setAnalyzer(cameraExecutor, PeekDetectorAnalyzer { numFaces ->
                     if (numFaces > 1) {
-                        Log.d("PeekDetectionService", "PEEKING DETECTED!")
+                        Log.d("PeekDetectionService", "PEEKING DETECTED! $numFaces faces")
                         triggerPeekAlertOverlay()
+                        showMultipleFacesNotification(numFaces)
                     }
                 })
             }
@@ -134,27 +143,27 @@ class PeekDetectionService : Service() {
         }
     }
     private fun startForegroundService() {
-        val channelId = "peek_detection_channel"
-        val channelName = "Peek Detection Service"
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val chan = NotificationChannel(channelId, channelName, NotificationManager.IMPORTANCE_LOW)
-            chan.lightColor = Color.BLUE
-            chan.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
-            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            manager.createNotificationChannel(chan)
-        }
-
-        val notificationBuilder = NotificationCompat.Builder(this, channelId)
-        val notification = notificationBuilder.setOngoing(true)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // Replace with your own icon
-            .setContentTitle("Peek Protection is Active")
-            .setContentText("Monitoring for shoulder surfers.")
-            .setPriority(NotificationManager.IMPORTANCE_LOW)
-            .setCategory(Notification.CATEGORY_SERVICE)
-            .build()
-
-        startForeground(1, notification) // NOTIFICATION_ID = 1
+        val notification = notificationHelper.createForegroundNotification()
+        startForeground(NotificationHelper.FOREGROUND_NOTIFICATION_ID, notification)
     }
-    // Copy the implementation of startForegroundService, triggerPeekAlertOverlay, and hideOverlay
-    // methods from the previous answer here. They are identical.
+    
+    /**
+     * Shows a notification when multiple faces are detected
+     * Implements cooldown to prevent notification spam
+     */
+    private fun showMultipleFacesNotification(numFaces: Int) {
+        val currentTime = System.currentTimeMillis()
+        
+        // Check if enough time has passed since last notification (cooldown period)
+        if (currentTime - lastNotificationTime >= notificationCooldown) {
+            // Check if notification permission is granted
+            if (notificationHelper.hasNotificationPermission()) {
+                notificationHelper.showMultipleFacesAlert(numFaces)
+                lastNotificationTime = currentTime
+                Log.d("PeekDetectionService", "Alert notification shown for $numFaces faces")
+            } else {
+                Log.w("PeekDetectionService", "Notification permission not granted, skipping notification")
+            }
+        }
+    }
 }
