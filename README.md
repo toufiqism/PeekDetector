@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # PeekDetector
 
 ## Overview
@@ -364,7 +363,3 @@ Contributions are welcome! Please follow these guidelines:
 **Version**: 1.1.0  
 **Minimum Android Version**: 7.0 (API 24)  
 **Target Android Version**: 14 (API 34)
-
-=======
-A peek detection service that notifies you when someone is peeking at your phone
->>>>>>> a31483791fa91e61d015e7ba830c0520980266b0
