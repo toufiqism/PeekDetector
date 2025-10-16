@@ -66,7 +66,7 @@ class PeekDetectionService : Service() {
                 it.setAnalyzer(cameraExecutor, PeekDetectorAnalyzer { numFaces ->
                     if (numFaces > 1) {
                         Log.d("PeekDetectionService", "PEEKING DETECTED! $numFaces faces")
-                        triggerPeekAlertOverlay()
+//                        triggerPeekAlertOverlay()
                         showMultipleFacesNotification(numFaces)
                     }
                 })
