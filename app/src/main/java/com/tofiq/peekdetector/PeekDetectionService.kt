@@ -24,6 +24,13 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.tofiq.peekdetector.data.AppDatabase
+import com.tofiq.peekdetector.data.DetectionRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -48,6 +55,12 @@ class PeekDetectionService : Service() {
     // Track last notification time to avoid spam
     private var lastNotificationTime: Long = 0
     private val notificationCooldown = 5000L // 5 seconds cooldown
+    
+    // Repository for database operations
+    private lateinit var detectionRepository: DetectionRepository
+    
+    // Coroutine scope for async operations
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onCreate() {
         super.onCreate()
@@ -56,6 +69,10 @@ class PeekDetectionService : Service() {
         serviceLifecycleOwner.start()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         notificationHelper = NotificationHelper(this)
+        
+        // Initialize database repository
+        val database = AppDatabase.getDatabase(this)
+        detectionRepository = DetectionRepository(database.detectionEventDao())
     }
 
     private val imageAnalyzer by lazy {
@@ -68,6 +85,7 @@ class PeekDetectionService : Service() {
                         Log.d("PeekDetectionService", "PEEKING DETECTED! $numFaces faces")
 //                        triggerPeekAlertOverlay()
                         showMultipleFacesNotification(numFaces)
+                        saveDetectionToDatabase(numFaces)
                     }
                 })
             }
@@ -108,6 +126,7 @@ class PeekDetectionService : Service() {
         cameraExecutor.shutdown()
         serviceLifecycleOwner.stop()
         hideOverlay() // Ensure overlay is removed when service stops
+        serviceScope.cancel() // Cancel coroutine scope
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -163,6 +182,20 @@ class PeekDetectionService : Service() {
                 Log.d("PeekDetectionService", "Alert notification shown for $numFaces faces")
             } else {
                 Log.w("PeekDetectionService", "Notification permission not granted, skipping notification")
+            }
+        }
+    }
+    
+    /**
+     * Save detection event to database
+     */
+    private fun saveDetectionToDatabase(numFaces: Int) {
+        serviceScope.launch {
+            try {
+                detectionRepository.insertDetection(numFaces)
+                Log.d("PeekDetectionService", "Detection saved to database: $numFaces faces")
+            } catch (e: Exception) {
+                Log.e("PeekDetectionService", "Failed to save detection to database", e)
             }
         }
     }

@@ -33,6 +33,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.MoreVert
+import com.tofiq.peekdetector.data.AppDatabase
+import com.tofiq.peekdetector.data.DetectionRepository
 import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme // Change to your theme name
 
 class MainActivity : ComponentActivity() {
@@ -83,6 +88,15 @@ fun PeekAppScreen() {
     val isServiceRunning by PeekDetectionService.isRunning
 
     val context = LocalContext.current
+    
+    // Initialize repository for detection count
+    val repository = remember {
+        val database = AppDatabase.getDatabase(context)
+        DetectionRepository(database.detectionEventDao())
+    }
+    
+    // Collect total detections count
+    val totalDetections by repository.getTotalDetectionsCount().collectAsState(initial = 0)
     // ... (The permission handling logic remains exactly the same)
     var hasCameraPermission by remember {
         mutableStateOf(
@@ -142,9 +156,97 @@ fun PeekAppScreen() {
             }
             else -> {
                 // Both permissions granted - show main UI
+                
+                // Detection Counter Card
+                DetectionCounterCard(totalDetections, context)
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
                 ServiceStatus(isServiceRunning)
                 Spacer(modifier = Modifier.height(32.dp))
                 ControlButtons(isServiceRunning, context)
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // View Reports Button
+                Button(
+                    modifier = Modifier.fillMaxWidth(0.8f),
+                    onClick = {
+                        val intent = Intent(context, ReportActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF64B5F6)
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "Reports",
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("View Reports", color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DetectionCounterCard(totalDetections: Int, context: Context) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth(0.9f)
+            .padding(vertical = 8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White.copy(alpha = 0.95f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Total Detections",
+                fontSize = 16.sp,
+                color = Color(0xFF0D47A1),
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = totalDetections.toString(),
+                fontSize = 56.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = if (totalDetections == 0) Color(0xFF4CAF50) else Color(0xFFFF5252)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = if (totalDetections == 1) "Shoulder Surfer" else "Shoulder Surfers",
+                fontSize = 14.sp,
+                color = Color.Gray
+            )
+            
+            if (totalDetections > 0) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "🔒 Stay vigilant!",
+                    fontSize = 12.sp,
+                    color = Color(0xFFFF9800),
+                    fontWeight = FontWeight.Medium
+                )
+            } else {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "✅ All clear!",
+                    fontSize = 12.sp,
+                    color = Color(0xFF4CAF50),
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }

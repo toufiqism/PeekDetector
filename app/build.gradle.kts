@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -71,4 +72,16 @@ dependencies {
 
     // (Optional but recommended) Activity KTX for easier permission handling
     implementation("androidx.activity:activity-ktx:1.11.0")
+
+    // Room database for storing detection events
+    val roomVersion = "2.6.1"
+    implementation("androidx.room:room-runtime:$roomVersion")
+    implementation("androidx.room:room-ktx:$roomVersion")
+    ksp("androidx.room:room-compiler:$roomVersion")
+
+    // Charts library for visualization (MPAndroidChart is Android-compatible)
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+    // Coroutines for async operations
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 }

@@ -16,12 +16,25 @@ The app runs as a foreground service, continuously monitoring the front camera f
 - **Smart Notification Management**: 
   - 5-second cooldown to prevent notification spam
   - Separate notification channels for service status and alerts
+- **Detection Tracking & Statistics**:
+  - Real-time counter showing total shoulder surfer detections
+  - Persistent database storage of all detection events
+  - Detailed detection history with timestamps and face counts
+  - Visual indicators showing detection severity (2 faces ⚠️, 3+ faces 🚨)
+- **Comprehensive Reporting System**:
+  - **Weekly Reports**: View detections from the current week
+  - **Monthly Reports**: View detections from the current month
+  - **Yearly Reports**: View detections from the current year
+  - Statistics dashboard showing total, average, and maximum faces detected
+  - Beautiful tabbed interface for easy navigation between time periods
+  - Data management with clear all data option
 - **Permission Handling**: Gracefully handles multiple Android permissions with user-friendly UI
 - **Modern UI**: 
   - Built with Jetpack Compose following Material Design 3
   - Beautiful gradient background with subtle pattern overlay
   - Custom app icon with surveillance/security theme
   - Professional blue color scheme for security and trust
+  - Responsive cards and intuitive layout
 
 ## Architecture
 
@@ -33,6 +46,8 @@ The app follows SOLID principles and clean architecture patterns:
 - Entry point of the application
 - Handles permission requests (Camera, Notifications, Overlay)
 - Provides UI to start/stop the detection service
+- Displays real-time detection counter
+- Navigation to report screen
 - Uses Jetpack Compose for modern, reactive UI
 
 #### 2. PeekDetectionService.kt
@@ -40,6 +55,7 @@ The app follows SOLID principles and clean architecture patterns:
 - Coordinates face detection through CameraX
 - Triggers alerts when multiple faces detected
 - Manages notification display with cooldown logic
+- Saves detection events to database asynchronously
 
 #### 3. PeekDetectorAnalyzer.kt
 - Implements ImageAnalysis.Analyzer interface
@@ -56,6 +72,21 @@ The app follows SOLID principles and clean architecture patterns:
 #### 5. ServiceLifecycleOwner.kt
 - Custom LifecycleOwner implementation for the service
 - Required for CameraX lifecycle binding in a service context
+
+#### 6. ReportActivity.kt
+- Dedicated activity for viewing detection reports
+- Tabbed interface for weekly, monthly, yearly views
+- Statistics dashboard with key metrics
+- Detection history with chronological list
+- Data management capabilities
+
+#### 7. Data Layer (data/ package)
+- **DetectionEvent.kt**: Entity class for database storage
+- **DetectionEventDao.kt**: Data Access Object with query methods
+- **AppDatabase.kt**: Room database configuration (Singleton)
+- **DetectionRepository.kt**: Single source of truth for detection data
+- Implements SSOT (Single Source of Truth) pattern
+- Provides Flow-based reactive data streams
 
 ## Permissions Required
 
@@ -100,7 +131,16 @@ The app follows SOLID principles and clean architecture patterns:
    d. If cooldown passed and permission granted:
       - Show notification alert
       - Update last notification time
-6. User can stop service anytime
+   e. Save detection event to Room database with:
+      - Face count
+      - Timestamp
+      - Auto-generated ID
+   f. Update real-time counter on main screen
+6. User can view reports at any time:
+   - Weekly view: Current week detections
+   - Monthly view: Current month detections
+   - Yearly view: Current year detections
+7. User can stop service anytime
 ```
 
 ### Notification Strategy
@@ -125,11 +165,17 @@ The app uses two separate notification channels:
 - **UI Framework**: Jetpack Compose with Material Design 3
 - **Camera**: CameraX
 - **Face Detection**: Google ML Kit Vision
+- **Database**: Room (SQLite)
+- **Async Operations**: Kotlin Coroutines & Flow
 - **Architecture Components**: 
   - Lifecycle
   - Compose Runtime (for state management)
-- **Minimum SDK**: API 24 (Android 7.0)
-- **Target SDK**: API 34 (Android 14)
+  - Room Persistence Library
+  - Flow for reactive data streams
+- **Architecture Pattern**: SSOT (Single Source of Truth)
+- **Design Principles**: SOLID, Clean Architecture
+- **Minimum SDK**: API 33 (Android 13)
+- **Target SDK**: API 36 (Android 15)
 
 ## Dependencies
 
@@ -148,6 +194,14 @@ implementation("com.google.mlkit:face-detection")
 implementation("androidx.compose.ui:ui")
 implementation("androidx.compose.material3:material3")
 implementation("androidx.activity:activity-compose")
+
+// Room Database
+implementation("androidx.room:room-runtime:2.6.1")
+implementation("androidx.room:room-ktx:2.6.1")
+ksp("androidx.room:room-compiler:2.6.1")
+
+// Coroutines
+implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
 // Core Android
 implementation("androidx.core:core-ktx")
@@ -187,27 +241,51 @@ implementation("androidx.lifecycle:lifecycle-runtime-ktx")
    - Grant camera permission when prompted
    - Grant notification permission (Android 13+) when prompted
    - Grant overlay permission through system settings
+   - View total detections counter on main screen
 
 2. **Start Protection**
    - Tap "Start Protection" button
    - Service will start and show persistent notification
    - Camera will begin monitoring in background
+   - Detection counter updates in real-time
 
 3. **When Multiple Faces Detected**
    - Screen will temporarily darken (3 seconds)
    - Notification alert will appear
+   - Event is automatically saved to database
+   - Detection counter increments
    - Both alerts indicate potential shoulder surfing
 
-4. **Stop Protection**
+4. **View Reports**
+   - Tap "View Reports" button on main screen
+   - Navigate between Weekly, Monthly, Yearly tabs
+   - View detailed statistics:
+     - Total detections in period
+     - Total faces detected
+     - Average faces per detection
+     - Maximum faces in single detection
+   - Browse chronological detection history
+   - See severity indicators (⚠️ for 2 faces, 🚨 for 3+ faces)
+
+5. **Manage Data**
+   - Tap delete icon in reports screen
+   - Confirm to clear all detection history
+   - Database will be reset to zero
+
+6. **Stop Protection**
    - Tap "Stop Protection" button
    - Service will stop and release camera
+   - Historical data is preserved
 
 ## Privacy Considerations
 
-- **No Data Storage**: The app does not store any images or facial data
+- **No Image Storage**: The app does not store any images or facial data
 - **Local Processing**: All face detection happens on-device using ML Kit
 - **No Network**: No data is transmitted over the network
-- **Minimal Data**: Only face count is tracked, no facial recognition or identification
+- **Minimal Data**: Only detection events stored (face count + timestamp)
+- **No Facial Recognition**: No identification or biometric data collected
+- **Local Database**: All data stored locally in Room database on device
+- **User Control**: Clear all data option available in reports screen
 - **Transparent Operation**: Persistent notification shows when service is active
 
 ## Customization
@@ -280,7 +358,50 @@ The main screen features a professional multi-layer background:
 
 ## Recent Updates
 
-### Version 1.2.0 (Current)
+### Version 1.3.0 (Current)
+
+#### Added - Detection Tracking & Reporting
+- **Detection Counter**: Real-time counter on main screen showing total shoulder surfer detections
+- **Database Storage**: Room database integration for persistent detection event storage
+- **Report Screen**: Comprehensive reporting with tabbed interface:
+  - Weekly reports view
+  - Monthly reports view
+  - Yearly reports view
+- **Statistics Dashboard**: Shows total detections, average faces, max faces per detection
+- **Detection History**: Chronological list of all detection events with timestamps
+- **Severity Indicators**: Visual indicators (⚠️ for 2 faces, 🚨 for 3+ faces)
+- **Data Management**: Clear all data functionality with confirmation dialog
+- **Beautiful UI**: Cards, tabs, and modern Material Design 3 components
+
+#### Technical Improvements
+- **Room Database**: Full database layer with DAO, Repository pattern
+- **SSOT Pattern**: Single source of truth for detection data
+- **Flow Integration**: Reactive data streams with Kotlin Flow
+- **Coroutines**: Async database operations don't block UI
+- **Repository Pattern**: Clean architecture with data layer separation
+- **Error Handling**: Graceful handling of database operations
+- **Null Safety**: Proper null checking throughout data layer
+
+### Version 1.2.0
+
+#### Added - UI/UX Design
+- **Custom App Icon**: Professional security-themed icon with eye and camera frame elements
+- **Gradient Background**: Beautiful deep blue gradient background for modern look
+- **Pattern Overlay**: Subtle repeating pattern adds texture and depth
+- **Color-Coded UI**: 
+  - Green for start/active states
+  - Red for stop/alert states
+  - Blue for information/actions
+- **Enhanced Contrast**: White text on dark blue background for excellent readability
+- **Consistent Theming**: All buttons and text follow the new color scheme
+
+#### Improved
+- **Visual Hierarchy**: Better contrast and color coding improves user understanding
+- **Brand Identity**: Custom icon and consistent color scheme create professional appearance
+- **Accessibility**: High contrast ratios ensure readability for all users
+- **User Experience**: Beautiful gradients and patterns make the app more engaging
+
+### Version 1.2.0 (Previous)
 
 #### Added - UI/UX Design
 - **Custom App Icon**: Professional security-themed icon with eye and camera frame elements
@@ -333,18 +454,23 @@ The main screen features a professional multi-layer background:
 2. **Battery Usage**: Continuous camera usage impacts battery life
 3. **False Positives**: May detect faces in photos/posters on screen
 4. **Lighting Dependency**: Detection accuracy varies with lighting conditions
-5. **Android Version**: Full notification features require Android 13+
+5. **Android Version**: Requires Android 13+ (API 33)
+6. **Database Growth**: Database size grows with detections (cleared manually by user)
 
 ## Future Enhancements
 
 - [ ] Configurable detection threshold
-- [ ] Detection history/statistics
+- [x] Detection history/statistics (Completed v1.3.0)
 - [ ] Power-saving modes
 - [ ] Customizable alert sounds
 - [ ] Whitelist for known faces
 - [ ] Settings screen for user preferences
 - [ ] Dark/Light theme support
 - [ ] Localization support
+- [ ] Export reports to CSV/PDF
+- [ ] Charts and graphs for visualization
+- [ ] Auto-delete old detections (configurable retention period)
+- [ ] Detection time patterns analysis (peak hours/days)
 
 ## iOS Compatibility Notes
 
@@ -383,6 +509,20 @@ If you plan to port this to iOS, you'll need:
 1. Grant SYSTEM_ALERT_WINDOW permission from system settings
 2. Check if app has overlay permission in Settings > Apps > Special Access
 3. Restart the service after granting permission
+
+### Detection Counter Not Updating
+
+1. Ensure detection service is running
+2. Check that Room database is properly initialized
+3. Restart the app to refresh the database connection
+4. Check logcat for database errors
+
+### Reports Not Showing Data
+
+1. Ensure detections have been recorded (counter > 0)
+2. Check selected time period (Weekly/Monthly/Yearly)
+3. Verify current date/time settings on device
+4. Try clearing and re-recording a detection
 
 ## Contributing
 
@@ -451,6 +591,6 @@ The background pattern is defined in `pattern_overlay.xml`. You can:
 ---
 
 **Last Updated**: October 26, 2025  
-**Version**: 1.2.0  
-**Minimum Android Version**: 7.0 (API 24)  
-**Target Android Version**: 14 (API 34)
+**Version**: 1.3.0  
+**Minimum Android Version**: 13 (API 33)  
+**Target Android Version**: 15 (API 36)
