@@ -17,7 +17,11 @@ The app runs as a foreground service, continuously monitoring the front camera f
   - 5-second cooldown to prevent notification spam
   - Separate notification channels for service status and alerts
 - **Permission Handling**: Gracefully handles multiple Android permissions with user-friendly UI
-- **Modern UI**: Built with Jetpack Compose following Material Design 3
+- **Modern UI**: 
+  - Built with Jetpack Compose following Material Design 3
+  - Beautiful gradient background with subtle pattern overlay
+  - Custom app icon with surveillance/security theme
+  - Professional blue color scheme for security and trust
 
 ## Architecture
 
@@ -243,9 +247,59 @@ fun showMultipleFacesAlert(faceCount: Int) {
 }
 ```
 
+## Design & UI
+
+### App Icon
+The app features a custom-designed icon that represents the core functionality:
+
+- **Eye Symbol**: Central eye represents surveillance and monitoring
+- **Security Frame**: Red corner brackets symbolize camera viewfinder and security scanning
+- **Scanning Lines**: Horizontal lines create a tech/scanning effect
+- **Color Scheme**:
+  - Deep blue gradient background (#1A237E → #3949AB) represents trust and security
+  - White eye with blue iris for clarity and visibility
+  - Red accents for alert and attention
+
+### Screen Background
+The main screen features a professional multi-layer background:
+
+- **Gradient Background**: Deep blue gradient (135° angle) creates depth and visual interest
+  - Start: #0D47A1 (Dark Blue)
+  - Center: #1565C0 (Medium Blue)
+  - End: #1976D2 (Light Blue)
+- **Pattern Overlay**: Subtle eye pattern at 5% opacity for texture without distraction
+- **White Text**: All text and UI elements use white/light colors for excellent contrast
+
+### UI Color Palette
+- **Primary Actions** (Start Button): #4CAF50 (Green) - Go/Safe
+- **Destructive Actions** (Stop Button): #FF5252 (Red) - Stop/Alert
+- **Information** (Permission Buttons): #64B5F6 (Light Blue) - Info/Action
+- **Status Active**: #4CAF50 (Green) - Service running
+- **Status Inactive**: #FF5252 (Red) - Service stopped
+- **Text**: White with varying opacity (0.7-1.0) for hierarchy
+
 ## Recent Updates
 
-### Version 1.1.0 (Current)
+### Version 1.2.0 (Current)
+
+#### Added - UI/UX Design
+- **Custom App Icon**: Professional security-themed icon with eye and camera frame elements
+- **Gradient Background**: Beautiful deep blue gradient background for modern look
+- **Pattern Overlay**: Subtle repeating pattern adds texture and depth
+- **Color-Coded UI**: 
+  - Green for start/active states
+  - Red for stop/alert states
+  - Blue for information/actions
+- **Enhanced Contrast**: White text on dark blue background for excellent readability
+- **Consistent Theming**: All buttons and text follow the new color scheme
+
+#### Improved
+- **Visual Hierarchy**: Better contrast and color coding improves user understanding
+- **Brand Identity**: Custom icon and consistent color scheme create professional appearance
+- **Accessibility**: High contrast ratios ensure readability for all users
+- **User Experience**: Beautiful gradients and patterns make the app more engaging
+
+### Version 1.1.0
 
 #### Added
 - **Notification Alerts**: Push notifications when multiple faces detected
@@ -357,9 +411,46 @@ Contributions are welcome! Please follow these guidelines:
 - **Jetpack Compose**: For modern UI development
 - **Material Design**: For UI/UX guidelines
 
+## Customizing the Design
+
+### Changing App Colors
+
+You can customize the color scheme by modifying the colors in `MainActivity.kt`:
+
+```kotlin
+// Background gradient colors
+Color(0xFF0D47A1),  // Start color
+Color(0xFF1565C0),  // Center color
+Color(0xFF1976D2)   // End color
+
+// Button colors
+Color(0xFF4CAF50)   // Green - Start/Active
+Color(0xFFFF5252)   // Red - Stop/Alert
+Color(0xFF64B5F6)   // Light Blue - Information
+```
+
+### Customizing the App Icon
+
+The app icon consists of two drawable files:
+
+1. **ic_launcher_background.xml**: Contains the gradient background
+2. **ic_launcher_foreground.xml**: Contains the eye and security frame design
+
+You can modify these vector drawable files to customize the icon appearance. The files are located in:
+```
+app/src/main/res/drawable/
+```
+
+### Changing Background Pattern
+
+The background pattern is defined in `pattern_overlay.xml`. You can:
+- Adjust the opacity in `MainActivity.kt` (currently 0.05f)
+- Modify the pattern design in the drawable file
+- Remove the pattern by commenting out the Image composable
+
 ---
 
-**Last Updated**: October 16, 2025  
-**Version**: 1.1.0  
+**Last Updated**: October 26, 2025  
+**Version**: 1.2.0  
 **Minimum Android Version**: 7.0 (API 24)  
 **Target Android Version**: 14 (API 34)

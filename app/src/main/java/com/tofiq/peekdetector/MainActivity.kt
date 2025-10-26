@@ -14,12 +14,19 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,10 +41,35 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             PeekDetectorTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                Box(
+                    modifier = Modifier.fillMaxSize()
                 ) {
+                    // Background gradient
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFF0D47A1),
+                                        Color(0xFF1565C0),
+                                        Color(0xFF1976D2)
+                                    )
+                                )
+                            )
+                    )
+                    
+                    // Pattern overlay
+                    Image(
+                        painter = painterResource(id = R.drawable.pattern_overlay),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .alpha(0.05f),
+                        contentScale = ContentScale.Crop
+                    )
+                    
+                    // Main content
                     PeekAppScreen()
                 }
             }
@@ -122,11 +154,12 @@ fun PeekAppScreen() {
 fun ServiceStatus(isServiceRunning: Boolean) {
     Text(
         text = "Service Status",
-        style = MaterialTheme.typography.headlineSmall
+        style = MaterialTheme.typography.headlineSmall,
+        color = Color.White
     )
     Spacer(modifier = Modifier.height(8.dp))
     val statusText = if (isServiceRunning) "Active" else "Inactive"
-    val statusColor = if (isServiceRunning) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+    val statusColor = if (isServiceRunning) Color(0xFF4CAF50) else Color(0xFFFF5252)
 
     Text(
         text = statusText,
@@ -145,8 +178,12 @@ fun ControlButtons(isServiceRunning: Boolean, context: Context) {
             onClick = {
                 val intent = Intent(context, PeekDetectionService::class.java)
                 context.startService(intent)
-            }) {
-            Text("Start Protection")
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF4CAF50)
+            )
+        ) {
+            Text("Start Protection", color = Color.White)
         }
     }
 
@@ -157,23 +194,36 @@ fun ControlButtons(isServiceRunning: Boolean, context: Context) {
                 val intent = Intent(context, PeekDetectionService::class.java)
                 context.stopService(intent)
             },
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5252))
         ) {
-            Text("Stop Protection")
+            Text("Stop Protection", color = Color.White)
         }
     }
 }
 
 @Composable
 fun PermissionRequestUI(launcher: ActivityResultLauncher<String>, context: Context) {
-    Text("Camera Permission Required", style = MaterialTheme.typography.headlineSmall)
+    Text(
+        "Camera Permission Required",
+        style = MaterialTheme.typography.headlineSmall,
+        color = Color.White
+    )
     Spacer(modifier = Modifier.height(8.dp))
-    Text("This app needs camera access to detect faces.", textAlign = TextAlign.Center)
+    Text(
+        "This app needs camera access to detect faces.",
+        textAlign = TextAlign.Center,
+        color = Color.White.copy(alpha = 0.9f)
+    )
     Spacer(modifier = Modifier.height(16.dp))
-    Button(onClick = {
-        launcher.launch(Manifest.permission.CAMERA)
-    }) {
-        Text("Grant Camera Permission")
+    Button(
+        onClick = {
+            launcher.launch(Manifest.permission.CAMERA)
+        },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF64B5F6)
+        )
+    ) {
+        Text("Grant Camera Permission", color = Color.White)
     }
     // Check for "Draw over other apps" permission
     val canDrawOverlays = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -186,17 +236,22 @@ fun PermissionRequestUI(launcher: ActivityResultLauncher<String>, context: Conte
         Text(
             text = "For screen overlay alerts to work, please grant the 'Draw over other apps' permission.",
             textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.error
+            color = Color(0xFFFF5252)
         )
         Spacer(modifier = Modifier.height(8.dp))
-        Button(onClick = {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                Uri.parse("package:${context.packageName}")
+        Button(
+            onClick = {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:${context.packageName}")
+                )
+                context.startActivity(intent)
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFFF5252)
             )
-            context.startActivity(intent)
-        }) {
-            Text("Open Settings")
+        ) {
+            Text("Open Settings", color = Color.White)
         }
         Spacer(modifier = Modifier.height(32.dp))
     }
@@ -210,24 +265,31 @@ fun NotificationPermissionRequestUI(
     Text(
         "Notification Permission Required", 
         style = MaterialTheme.typography.headlineSmall,
-        textAlign = TextAlign.Center
+        textAlign = TextAlign.Center,
+        color = Color.White
     )
     Spacer(modifier = Modifier.height(8.dp))
     Text(
         "This app needs notification permission to alert you when multiple faces are detected.",
-        textAlign = TextAlign.Center
+        textAlign = TextAlign.Center,
+        color = Color.White.copy(alpha = 0.9f)
     )
     Spacer(modifier = Modifier.height(16.dp))
-    Button(onClick = {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-    }) {
-        Text("Grant Notification Permission")
+    Button(
+        onClick = {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF64B5F6)
+        )
+    ) {
+        Text("Grant Notification Permission", color = Color.White)
     }
     Spacer(modifier = Modifier.height(8.dp))
     TextButton(onClick = onSkip) {
-        Text("Skip (Can enable later in settings)")
+        Text("Skip (Can enable later in settings)", color = Color.White.copy(alpha = 0.7f))
     }
 }
 @Preview(showBackground = true)
