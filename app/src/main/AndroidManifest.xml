@@ -13,6 +13,10 @@
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
     <!-- Notification permission for Android 13+ (API 33+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    
+    <!-- Storage permissions for exporting reports to Downloads folder -->
+    <!-- Note: For API 33+, MediaStore API is used which doesn't require explicit permissions -->
+    <!-- READ_MEDIA_* permissions may be needed if reading user files, but not for our app-generated reports -->
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"

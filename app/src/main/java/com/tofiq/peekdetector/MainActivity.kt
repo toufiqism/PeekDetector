@@ -36,14 +36,22 @@ import androidx.core.content.ContextCompat
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.tofiq.peekdetector.data.AppDatabase
 import com.tofiq.peekdetector.data.DetectionRepository
 import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme // Change to your theme name
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Initialize WorkManager for daily report export
+        scheduleReportExport()
+        
         setContent {
             PeekDetectorTheme {
                 Box(
@@ -79,6 +87,25 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    
+    /**
+     * Schedules periodic report export using WorkManager
+     * Runs once every 24 hours to export detection reports to Downloads folder
+     * 
+     * Uses ExistingPeriodicWorkPolicy.KEEP to avoid duplicate work requests
+     */
+    private fun scheduleReportExport() {
+        val workRequest = PeriodicWorkRequestBuilder<ReportExportWorker>(
+            repeatInterval = 1,
+            repeatIntervalTimeUnit = TimeUnit.DAYS
+        ).build()
+        
+        WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
+            ReportExportWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP, // Keep existing work, don't replace
+            workRequest
+        )
     }
 }
 

@@ -28,6 +28,13 @@ The app runs as a foreground service, continuously monitoring the front camera f
   - Statistics dashboard showing total, average, and maximum faces detected
   - Beautiful tabbed interface for easy navigation between time periods
   - Data management with clear all data option
+- **Automatic Report Export**:
+  - Daily automatic export of detection reports to Downloads folder
+  - Reports exported in multiple formats (JSON, CSV, and summary text)
+  - All reports compressed into a single ZIP file
+  - Background processing using WorkManager for efficient battery usage
+  - Notification alerts when export completes or fails
+  - No manual intervention required - runs automatically every 24 hours
 - **Permission Handling**: Gracefully handles multiple Android permissions with user-friendly UI
 - **Modern UI**: 
   - Built with Jetpack Compose following Material Design 3
@@ -88,6 +95,19 @@ The app follows SOLID principles and clean architecture patterns:
 - Implements SSOT (Single Source of Truth) pattern
 - Provides Flow-based reactive data streams
 
+#### 8. Report Export System
+- **ReportExportHelper.kt**: Utility class for exporting and zipping reports
+  - Fetches all detection events from database
+  - Creates JSON, CSV, and text summary reports
+  - Zips reports into single archive
+  - Saves to Downloads folder using MediaStore API
+  - Handles cleanup of temporary files
+- **ReportExportWorker.kt**: WorkManager worker for scheduled exports
+  - Runs daily (every 24 hours) automatically
+  - Shows progress, success, and failure notifications
+  - Graceful error handling with retry logic
+  - Battery-efficient background processing
+
 ## Permissions Required
 
 ### Runtime Permissions
@@ -140,7 +160,13 @@ The app follows SOLID principles and clean architecture patterns:
    - Weekly view: Current week detections
    - Monthly view: Current month detections
    - Yearly view: Current year detections
-7. User can stop service anytime
+7. WorkManager automatically exports reports every 24 hours:
+   - Fetches all detection events from database
+   - Creates JSON, CSV, and summary reports
+   - Zips all reports into single archive
+   - Saves ZIP to Downloads folder
+   - Shows notification when complete
+8. User can stop service anytime
 ```
 
 ### Notification Strategy
@@ -199,6 +225,9 @@ implementation("androidx.activity:activity-compose")
 implementation("androidx.room:room-runtime:2.6.1")
 implementation("androidx.room:room-ktx:2.6.1")
 ksp("androidx.room:room-compiler:2.6.1")
+
+// WorkManager
+implementation("androidx.work:work-runtime-ktx:2.9.1")
 
 // Coroutines
 implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
@@ -272,7 +301,14 @@ implementation("androidx.lifecycle:lifecycle-runtime-ktx")
    - Confirm to clear all detection history
    - Database will be reset to zero
 
-6. **Stop Protection**
+6. **Automatic Report Export**
+   - Reports are automatically exported every 24 hours to Downloads folder
+   - No manual action required
+   - Notification shown when export completes
+   - ZIP file contains JSON, CSV, and summary text files
+   - Find exported files in: `Downloads/PeekDetector_Reports_[timestamp].zip`
+
+7. **Stop Protection**
    - Tap "Stop Protection" button
    - Service will stop and release camera
    - Historical data is preserved
@@ -358,7 +394,29 @@ The main screen features a professional multi-layer background:
 
 ## Recent Updates
 
-### Version 1.3.0 (Current)
+### Version 1.4.0 (Current)
+
+#### Added - Automatic Report Export
+- **Daily Report Export**: Automatic export every 24 hours using WorkManager
+- **Multi-Format Reports**: Exports in JSON, CSV, and text summary formats
+- **ZIP Compression**: All reports compressed into single ZIP file
+- **Downloads Folder Integration**: Saves directly to Downloads folder using MediaStore API
+- **Export Notifications**: Shows progress, success, and failure notifications
+- **Background Processing**: Uses WorkManager for efficient battery usage
+- **No Manual Intervention**: Runs automatically in the background
+- **Graceful Error Handling**: Handles missing data and failures appropriately
+
+#### Technical Improvements
+- **WorkManager Integration**: Periodic background task scheduling (24-hour interval)
+- **MediaStore API**: Android 10+ compatible storage access
+- **JSON/CSV Export**: Multiple format support for data portability
+- **File Compression**: ZIP file creation for efficient storage
+- **Notification System**: Progress and status notifications for user feedback
+- **Error Recovery**: Retry logic for transient failures
+- **Battery Optimization**: Deferred background work execution
+- **Scoped Storage**: API 33+ compliant storage access without special permissions
+
+### Version 1.3.0
 
 #### Added - Detection Tracking & Reporting
 - **Detection Counter**: Real-time counter on main screen showing total shoulder surfer detections
@@ -456,21 +514,26 @@ The main screen features a professional multi-layer background:
 4. **Lighting Dependency**: Detection accuracy varies with lighting conditions
 5. **Android Version**: Requires Android 13+ (API 33)
 6. **Database Growth**: Database size grows with detections (cleared manually by user)
+7. **Export Schedule**: WorkManager minimum interval is 15 minutes, but daily (24 hours) is recommended
+8. **Storage Space**: Exported ZIP files accumulate in Downloads folder (manual cleanup recommended)
 
 ## Future Enhancements
 
 - [ ] Configurable detection threshold
 - [x] Detection history/statistics (Completed v1.3.0)
+- [x] Export reports to CSV/PDF (Completed v1.4.0 - CSV, JSON, TXT formats)
 - [ ] Power-saving modes
 - [ ] Customizable alert sounds
 - [ ] Whitelist for known faces
 - [ ] Settings screen for user preferences
 - [ ] Dark/Light theme support
 - [ ] Localization support
-- [ ] Export reports to CSV/PDF
 - [ ] Charts and graphs for visualization
 - [ ] Auto-delete old detections (configurable retention period)
 - [ ] Detection time patterns analysis (peak hours/days)
+- [ ] Configurable export schedule (hourly, daily, weekly options)
+- [ ] Cloud backup integration (Google Drive, Dropbox)
+- [ ] Email report sending option
 
 ## iOS Compatibility Notes
 
@@ -523,6 +586,22 @@ If you plan to port this to iOS, you'll need:
 2. Check selected time period (Weekly/Monthly/Yearly)
 3. Verify current date/time settings on device
 4. Try clearing and re-recording a detection
+
+### Exported Reports Not Found
+
+1. Check Downloads folder on your device
+2. Look for files named `PeekDetector_Reports_[timestamp].zip`
+3. Ensure app has been running for at least 24 hours (first export)
+4. Check notification tray for export status
+5. Verify device storage space is available
+
+### Export Failing
+
+1. Check device storage space
+2. Verify Downloads folder is accessible
+3. Check notification for specific error message
+4. Try clearing app cache and restarting app
+5. Ensure at least one detection has been recorded
 
 ## Contributing
 
@@ -590,7 +669,72 @@ The background pattern is defined in `pattern_overlay.xml`. You can:
 
 ---
 
-**Last Updated**: October 26, 2025  
-**Version**: 1.3.0  
+**Last Updated**: October 29, 2025  
+**Version**: 1.4.0  
 **Minimum Android Version**: 13 (API 33)  
 **Target Android Version**: 15 (API 36)
+
+## Report Export File Structure
+
+When reports are exported, they are saved as a ZIP file in your Downloads folder with the following structure:
+
+```
+PeekDetector_Reports_20251029_143025.zip
+├── detection_report_20251029_143025.json    # JSON format (machine-readable)
+├── detection_report_20251029_143025.csv     # CSV format (spreadsheet-compatible)
+└── detection_summary_20251029_143025.txt    # Human-readable summary
+```
+
+### JSON Format
+Contains detailed detection data in JSON format for programmatic access:
+```json
+{
+  "exportDate": "20251029_143025",
+  "totalDetections": 42,
+  "totalFaces": 97,
+  "detections": [
+    {
+      "id": 1,
+      "faceCount": 2,
+      "timestamp": 1698589200000,
+      "dateTime": "2025-10-29 14:30:00"
+    }
+  ]
+}
+```
+
+### CSV Format
+Compatible with Excel, Google Sheets, and other spreadsheet applications:
+```csv
+ID,Face Count,Timestamp (ms),Date Time
+1,2,1698589200000,"2025-10-29 14:30:00"
+2,3,1698589800000,"2025-10-29 14:40:00"
+```
+
+### Summary Text
+Human-readable summary with statistics and recent detections:
+```
+PeekDetector - Detection Report Summary
+==================================================
+
+Export Date: 2025-10-29 14:30:25
+Report Period: 2025-10-01 08:15:00 to 2025-10-29 14:30:00
+
+Statistics:
+--------------------------------------------------
+Total Detections: 42
+Total Faces Detected: 97
+Average Faces per Detection: 2.31
+Maximum Faces in Single Detection: 4
+Minimum Faces in Single Detection: 2
+
+Detection Severity Breakdown:
+--------------------------------------------------
+⚠️  Low Severity (2 faces): 30 detections
+🚨 High Severity (3+ faces): 12 detections
+
+Recent Detections (Last 10):
+--------------------------------------------------
+ID 42: 2 faces at 2025-10-29 14:30:00
+...
+```

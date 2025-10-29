@@ -41,6 +41,7 @@ class PeekDetectionService : Service() {
         // This state is observable by Jetpack Compose
         val isRunning = mutableStateOf(false)
     }
+
     private lateinit var cameraExecutor: ExecutorService
     private val serviceLifecycleOwner = ServiceLifecycleOwner()
     private var cameraProvider: ProcessCameraProvider? = null
@@ -48,17 +49,17 @@ class PeekDetectionService : Service() {
     // For the screen overlay alert
     private var overlayView: View? = null
     private lateinit var windowManager: WindowManager
-    
+
     // Notification helper
     private lateinit var notificationHelper: NotificationHelper
-    
+
     // Track last notification time to avoid spam
     private var lastNotificationTime: Long = 0
     private val notificationCooldown = 5000L // 5 seconds cooldown
-    
+
     // Repository for database operations
     private lateinit var detectionRepository: DetectionRepository
-    
+
     // Coroutine scope for async operations
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -69,7 +70,7 @@ class PeekDetectionService : Service() {
         serviceLifecycleOwner.start()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
         notificationHelper = NotificationHelper(this)
-        
+
         // Initialize database repository
         val database = AppDatabase.getDatabase(this)
         detectionRepository = DetectionRepository(database.detectionEventDao())
@@ -80,14 +81,14 @@ class PeekDetectionService : Service() {
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
             .also {
-                it.setAnalyzer(cameraExecutor, PeekDetectorAnalyzer { numFaces ->
+                it.setAnalyzer(cameraExecutor, PeekDetectorAnalyzer({ numFaces ->
                     if (numFaces > 1) {
                         Log.d("PeekDetectionService", "PEEKING DETECTED! $numFaces faces")
 //                        triggerPeekAlertOverlay()
                         showMultipleFacesNotification(numFaces)
                         saveDetectionToDatabase(numFaces)
                     }
-                })
+                }))
             }
     }
 
@@ -125,7 +126,6 @@ class PeekDetectionService : Service() {
         cameraProvider?.unbindAll()
         cameraExecutor.shutdown()
         serviceLifecycleOwner.stop()
-        hideOverlay() // Ensure overlay is removed when service stops
         serviceScope.cancel() // Cancel coroutine scope
     }
 
@@ -136,6 +136,7 @@ class PeekDetectionService : Service() {
             overlayView = null
         }
     }
+
     // This is the new alert method
     private fun triggerPeekAlertOverlay() {
         // Ensure we run on the main thread
@@ -161,18 +162,19 @@ class PeekDetectionService : Service() {
             }
         }
     }
+
     private fun startForegroundService() {
         val notification = notificationHelper.createForegroundNotification()
         startForeground(NotificationHelper.FOREGROUND_NOTIFICATION_ID, notification)
     }
-    
+
     /**
      * Shows a notification when multiple faces are detected
      * Implements cooldown to prevent notification spam
      */
     private fun showMultipleFacesNotification(numFaces: Int) {
         val currentTime = System.currentTimeMillis()
-        
+
         // Check if enough time has passed since last notification (cooldown period)
         if (currentTime - lastNotificationTime >= notificationCooldown) {
             // Check if notification permission is granted
@@ -181,11 +183,14 @@ class PeekDetectionService : Service() {
                 lastNotificationTime = currentTime
                 Log.d("PeekDetectionService", "Alert notification shown for $numFaces faces")
             } else {
-                Log.w("PeekDetectionService", "Notification permission not granted, skipping notification")
+                Log.w(
+                    "PeekDetectionService",
+                    "Notification permission not granted, skipping notification"
+                )
             }
         }
     }
-    
+
     /**
      * Save detection event to database
      */

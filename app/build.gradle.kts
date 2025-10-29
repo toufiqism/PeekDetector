@@ -84,4 +84,7 @@ dependencies {
 
     // Coroutines for async operations
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+
+    // WorkManager for periodic background tasks
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 }
