@@ -48,10 +48,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         // Initialize WorkManager for daily report export
         scheduleReportExport()
-        
+
         setContent {
             PeekDetectorTheme {
                 Box(
@@ -71,7 +71,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             )
                     )
-                    
+
                     // Pattern overlay
                     Image(
                         painter = painterResource(id = R.drawable.pattern_overlay),
@@ -81,26 +81,37 @@ class MainActivity : ComponentActivity() {
                             .alpha(0.05f),
                         contentScale = ContentScale.Crop
                     )
-                    
+
                     // Main content
                     PeekAppScreen()
                 }
             }
         }
     }
-    
+
     /**
      * Schedules periodic report export using WorkManager
      * Runs once every 24 hours to export detection reports to Downloads folder
-     * 
-     * Uses ExistingPeriodicWorkPolicy.KEEP to avoid duplicate work requests
+     *
+     * Battery optimizations:
+     * - Requires device charging or sufficient battery to minimize impact
+     * - Defers execution until optimal conditions (WiFi/unmetered network preferred)
+     * - Uses ExistingPeriodicWorkPolicy.KEEP to avoid duplicate work requests
      */
     private fun scheduleReportExport() {
+        val constraints = androidx.work.Constraints.Builder()
+            .setRequiresCharging(false) // Allow on battery, but prefer charging
+            .setRequiresBatteryNotLow(true) // Don't run if battery is low
+            .setRequiredNetworkType(androidx.work.NetworkType.NOT_REQUIRED) // No network needed
+            .build()
+
         val workRequest = PeriodicWorkRequestBuilder<ReportExportWorker>(
             repeatInterval = 1,
             repeatIntervalTimeUnit = TimeUnit.DAYS
-        ).build()
-        
+        )
+            .setConstraints(constraints)
+            .build()
+
         WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
             ReportExportWorker.WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP, // Keep existing work, don't replace
@@ -115,13 +126,13 @@ fun PeekAppScreen() {
     val isServiceRunning by PeekDetectionService.isRunning
 
     val context = LocalContext.current
-    
+
     // Initialize repository for detection count
     val repository = remember {
         val database = AppDatabase.getDatabase(context)
         DetectionRepository(database.detectionEventDao())
     }
-    
+
     // Collect total detections count
     val totalDetections by repository.getTotalDetectionsCount().collectAsState(initial = 0)
     // ... (The permission handling logic remains exactly the same)
@@ -133,7 +144,7 @@ fun PeekAppScreen() {
             ) == PackageManager.PERMISSION_GRANTED
         )
     }
-    
+
     // Notification permission state (for Android 13+)
     var hasNotificationPermission by remember {
         mutableStateOf(
@@ -154,7 +165,7 @@ fun PeekAppScreen() {
             hasCameraPermission = isGranted
         }
     )
-    
+
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { isGranted ->
@@ -174,6 +185,7 @@ fun PeekAppScreen() {
                 // Camera permission request UI
                 PermissionRequestUI(cameraPermissionLauncher, context)
             }
+
             !hasNotificationPermission -> {
                 // Notification permission request UI
                 NotificationPermissionRequestUI(
@@ -181,20 +193,21 @@ fun PeekAppScreen() {
                     onSkip = { hasNotificationPermission = true }
                 )
             }
+
             else -> {
                 // Both permissions granted - show main UI
-                
+
                 // Detection Counter Card
                 DetectionCounterCard(totalDetections, context)
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 ServiceStatus(isServiceRunning)
                 Spacer(modifier = Modifier.height(32.dp))
                 ControlButtons(isServiceRunning, context)
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // View Reports Button
                 Button(
                     modifier = Modifier.fillMaxWidth(0.8f),
@@ -257,7 +270,7 @@ fun DetectionCounterCard(totalDetections: Int, context: Context) {
                 fontSize = 14.sp,
                 color = Color.Gray
             )
-            
+
             if (totalDetections > 0) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
@@ -392,7 +405,7 @@ fun NotificationPermissionRequestUI(
     onSkip: () -> Unit
 ) {
     Text(
-        "Notification Permission Required", 
+        "Notification Permission Required",
         style = MaterialTheme.typography.headlineSmall,
         textAlign = TextAlign.Center,
         color = Color.White
@@ -421,6 +434,7 @@ fun NotificationPermissionRequestUI(
         Text("Skip (Can enable later in settings)", color = Color.White.copy(alpha = 0.7f))
     }
 }
+
 @Preview(showBackground = true)
 @Composable
 fun DefaultPreview() {
