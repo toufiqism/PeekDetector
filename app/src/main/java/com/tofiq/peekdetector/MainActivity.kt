@@ -46,6 +46,8 @@ import com.tofiq.peekdetector.data.DetectionRepository
 import com.tofiq.peekdetector.data.SettingsRepositoryImpl
 import com.tofiq.peekdetector.data.ThemeMode
 import com.tofiq.peekdetector.data.settingsDataStore
+import com.tofiq.peekdetector.ui.PanicAlertActiveUI
+import com.tofiq.peekdetector.ui.SlideToAlertComponent
 import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme // Change to your theme name
 import java.util.concurrent.TimeUnit
 
@@ -255,6 +257,12 @@ private fun MainContent() {
 
     // View Reports Button - no state dependency, stable
     ViewReportsButton()
+
+    Spacer(modifier = Modifier.height(24.dp))
+
+    // Panic Alert Section with deferred state read
+    // Requirements: 1.1, 4.1, 4.3, 4.4
+    PanicAlertSectionStateful()
 }
 
 /**
@@ -317,6 +325,51 @@ private fun ViewReportsButton() {
         )
         Spacer(modifier = Modifier.width(8.dp))
         Text("View Reports", color = Color.White)
+    }
+}
+
+/**
+ * Stateful wrapper for the panic alert section that reads alert state as late as possible.
+ * Shows SlideToAlertComponent when inactive, PanicAlertActiveUI when active.
+ * 
+ * Requirements:
+ * - 1.1: Display a clearly visible slider element on the main screen
+ * - 4.1: Display instructional text indicating how to activate when inactive
+ * - 4.3: Hide slider when alert is active
+ * - 4.4: Use high-contrast colors for accessibility
+ */
+@Composable
+private fun PanicAlertSectionStateful() {
+    val context = LocalContext.current
+    val isPanicAlertActive by PanicAlertService.isActive
+    
+    // Show SlideToAlertComponent when inactive, PanicAlertActiveUI when active
+    // Requirement 4.3: Slider hidden when active
+    AnimatedVisibility(visible = !isPanicAlertActive) {
+        SlideToAlertComponent(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(vertical = 8.dp),
+            enabled = true,
+            onAlertTriggered = {
+                // Start the panic alert service
+                PanicAlertService.start(context)
+            }
+        )
+    }
+    
+    // Show PanicAlertActiveUI when alert is active
+    // Requirement 3.1: Display prominent stop button while active
+    AnimatedVisibility(visible = isPanicAlertActive) {
+        PanicAlertActiveUI(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(vertical = 8.dp),
+            onStopClicked = {
+                // Stop the panic alert service
+                PanicAlertService.stop(context)
+            }
+        )
     }
 }
 
