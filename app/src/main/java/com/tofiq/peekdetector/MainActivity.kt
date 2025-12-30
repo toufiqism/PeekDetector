@@ -16,6 +16,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,11 +37,15 @@ import androidx.core.content.ContextCompat
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Settings
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.tofiq.peekdetector.data.AppDatabase
 import com.tofiq.peekdetector.data.DetectionRepository
+import com.tofiq.peekdetector.data.SettingsRepositoryImpl
+import com.tofiq.peekdetector.data.ThemeMode
+import com.tofiq.peekdetector.data.settingsDataStore
 import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme // Change to your theme name
 import java.util.concurrent.TimeUnit
 
@@ -53,7 +58,22 @@ class MainActivity : ComponentActivity() {
         scheduleReportExport()
 
         setContent {
-            PeekDetectorTheme {
+            val settingsRepository = remember {
+                SettingsRepositoryImpl(applicationContext.settingsDataStore)
+            }
+            
+            // Collect theme mode to apply correct theme
+            val themeMode by settingsRepository.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+            
+            // Determine if dark theme should be used based on setting
+            // Requirements: 5.2, 5.3, 5.4, 5.6
+            val darkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            
+            PeekDetectorTheme(darkTheme = darkTheme) {
                 Box(
                     modifier = Modifier.fillMaxSize()
                 ) {
@@ -122,20 +142,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun PeekAppScreen() {
-    // This is the state we will observe from the Service
-    val isServiceRunning by PeekDetectionService.isRunning
-
     val context = LocalContext.current
 
-    // Initialize repository for detection count
-    val repository = remember {
-        val database = AppDatabase.getDatabase(context)
-        DetectionRepository(database.detectionEventDao())
-    }
-
-    // Collect total detections count
-    val totalDetections by repository.getTotalDetectionsCount().collectAsState(initial = 0)
-    // ... (The permission handling logic remains exactly the same)
+    // Permission states - these change rarely, so kept at this level
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -145,7 +154,6 @@ fun PeekAppScreen() {
         )
     }
 
-    // Notification permission state (for Android 13+)
     var hasNotificationPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -154,7 +162,7 @@ fun PeekAppScreen() {
                     Manifest.permission.POST_NOTIFICATIONS
                 ) == PackageManager.PERMISSION_GRANTED
             } else {
-                true // Not required for older versions
+                true
             }
         )
     }
@@ -182,12 +190,10 @@ fun PeekAppScreen() {
     ) {
         when {
             !hasCameraPermission -> {
-                // Camera permission request UI
                 PermissionRequestUI(cameraPermissionLauncher, context)
             }
 
             !hasNotificationPermission -> {
-                // Notification permission request UI
                 NotificationPermissionRequestUI(
                     notificationPermissionLauncher,
                     onSkip = { hasNotificationPermission = true }
@@ -195,41 +201,122 @@ fun PeekAppScreen() {
             }
 
             else -> {
-                // Both permissions granted - show main UI
-
-                // Detection Counter Card
-                DetectionCounterCard(totalDetections, context)
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                ServiceStatus(isServiceRunning)
-                Spacer(modifier = Modifier.height(32.dp))
-                ControlButtons(isServiceRunning, context)
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // View Reports Button
-                Button(
-                    modifier = Modifier.fillMaxWidth(0.8f),
-                    onClick = {
-                        val intent = Intent(context, ReportActivity::class.java)
-                        context.startActivity(intent)
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF64B5F6)
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = "Reports",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("View Reports", color = Color.White)
-                }
+                // Main content - state reads deferred to child composables
+                MainContent()
             }
         }
+    }
+}
+
+/**
+ * Main content composable that defers state reads to leaf composables
+ * This prevents recomposition of the entire tree when individual states change
+ */
+@Composable
+private fun MainContent() {
+    val context = LocalContext.current
+
+    // Settings button at the top
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp),
+        horizontalArrangement = Arrangement.End
+    ) {
+        IconButton(
+            onClick = {
+                val intent = Intent(context, SettingsActivity::class.java)
+                context.startActivity(intent)
+            }
+        ) {
+            Icon(
+                Icons.Default.Settings,
+                contentDescription = "Settings",
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+    }
+
+    // Detection counter with deferred state read
+    DetectionCounterCardStateful(context)
+
+    Spacer(modifier = Modifier.height(24.dp))
+
+    // Service status with deferred state read
+    ServiceStatusStateful()
+
+    Spacer(modifier = Modifier.height(32.dp))
+
+    // Control buttons with deferred state read
+    ControlButtonsStateful()
+
+    Spacer(modifier = Modifier.height(16.dp))
+
+    // View Reports Button - no state dependency, stable
+    ViewReportsButton()
+}
+
+/**
+ * Stateful wrapper that reads detection count as late as possible
+ */
+@Composable
+private fun DetectionCounterCardStateful(context: Context) {
+    val repository = remember {
+        val database = AppDatabase.getDatabase(context)
+        DetectionRepository(database.detectionEventDao())
+    }
+    val totalDetections by repository.getTotalDetectionsCount().collectAsState(initial = 0)
+    
+    DetectionCounterCard(
+        totalDetections = totalDetections,
+        context = context
+    )
+}
+
+/**
+ * Stateful wrapper that reads service running state as late as possible
+ */
+@Composable
+private fun ServiceStatusStateful() {
+    val isServiceRunning by PeekDetectionService.isRunning
+    ServiceStatus(isServiceRunning = isServiceRunning)
+}
+
+/**
+ * Stateful wrapper that reads service running state as late as possible
+ */
+@Composable
+private fun ControlButtonsStateful() {
+    val context = LocalContext.current
+    val isServiceRunning by PeekDetectionService.isRunning
+    ControlButtons(isServiceRunning = isServiceRunning, context = context)
+}
+
+/**
+ * Stable composable with no state dependencies - won't recompose unnecessarily
+ */
+@Composable
+private fun ViewReportsButton() {
+    val context = LocalContext.current
+    Button(
+        modifier = Modifier.fillMaxWidth(0.8f),
+        onClick = {
+            val intent = Intent(context, ReportActivity::class.java)
+            context.startActivity(intent)
+        },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color(0xFF64B5F6)
+        )
+    ) {
+        Icon(
+            Icons.Default.MoreVert,
+            contentDescription = "Reports",
+            tint = Color.White,
+            modifier = Modifier.size(20.dp)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text("View Reports", color = Color.White)
     }
 }
 

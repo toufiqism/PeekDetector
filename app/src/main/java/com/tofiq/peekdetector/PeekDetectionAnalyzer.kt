@@ -7,24 +7,29 @@ import androidx.camera.core.ImageProxy
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.tofiq.peekdetector.data.SensitivityLevel
 
 /**
- * Optimized face detection analyzer with frame skipping for battery efficiency
+ * Optimized face detection analyzer with configurable frame skipping for battery efficiency.
  * 
  * Battery optimizations:
- * - Frame skipping: Processes every 3rd frame (~10fps effective vs 30fps)
- * - Reduced CPU processing by ~66% while maintaining detection accuracy
+ * - Configurable frame skipping based on sensitivity level
+ * - Reduced CPU processing while maintaining detection accuracy
  * - Proper image proxy cleanup prevents memory leaks
+ * 
+ * @param listener Callback invoked with the number of faces detected
+ * @param getFrameSkip Lambda to get the current frame skip value from settings.
+ *                     Defaults to MEDIUM sensitivity (every 3rd frame).
+ * 
+ * Requirements: 2.2, 2.3, 2.4
  */
-class PeekDetectorAnalyzer(private val listener: (Int) -> Unit) : ImageAnalysis.Analyzer {
+class PeekDetectorAnalyzer(
+    private val listener: (Int) -> Unit,
+    private val getFrameSkip: () -> Int = { SensitivityLevel.MEDIUM.frameSkip }
+) : ImageAnalysis.Analyzer {
 
-    // Battery optimization: Process every 3rd frame (SKIP_FRAMES = 3)
-    // This reduces CPU usage by ~66% while maintaining detection responsiveness
-    // Face detection doesn't need 30fps - 10fps is sufficient for security monitoring
+    // Frame counter for skip logic
     private var frameCounter = 0
-    private companion object {
-        private const val SKIP_FRAMES = 3 // Process every 3rd frame
-    }
 
     private val highAccuracyOpts = FaceDetectorOptions.Builder()
         .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST) // Already optimized for speed
@@ -37,9 +42,12 @@ class PeekDetectorAnalyzer(private val listener: (Int) -> Unit) : ImageAnalysis.
     override fun analyze(imageProxy: ImageProxy) {
         frameCounter++
         
+        // Get current frame skip value from settings
+        val skipFrames = getFrameSkip()
+        
         // Battery optimization: Skip frames to reduce processing
         // Close skipped frames immediately to prevent memory buildup
-        if (frameCounter % SKIP_FRAMES != 0) {
+        if (frameCounter % skipFrames != 0) {
             imageProxy.close()
             return
         }

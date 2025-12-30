@@ -7,10 +7,20 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import com.tofiq.peekdetector.data.SettingsRepositoryImpl
+import com.tofiq.peekdetector.data.settingsDataStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 /**
  * Helper class to manage notifications for the PeekDetector app
  * Handles notification channels and creation with proper Android versioning support
+ * 
+ * Requirements: 4.2, 4.3
  */
 class NotificationHelper(private val context: Context) {
 
@@ -26,9 +36,36 @@ class NotificationHelper(private val context: Context) {
 
     private val notificationManager: NotificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    
+    // Settings repository for reading vibration preference
+    private val settingsRepository: SettingsRepositoryImpl by lazy {
+        SettingsRepositoryImpl(context.settingsDataStore)
+    }
+    
+    // Coroutine scope for async operations
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    
+    // Cached vibration setting (updated asynchronously)
+    @Volatile
+    private var vibrationEnabled = true
 
     init {
         createNotificationChannels()
+        // Start observing vibration setting
+        observeVibrationSetting()
+    }
+    
+    /**
+     * Observes the vibration setting and updates the cached value.
+     * 
+     * Requirements: 4.2, 4.3
+     */
+    private fun observeVibrationSetting() {
+        scope.launch {
+            settingsRepository.vibrationEnabled.collect { enabled ->
+                vibrationEnabled = enabled
+            }
+        }
     }
 
     /**
@@ -90,7 +127,11 @@ class NotificationHelper(private val context: Context) {
 
     /**
      * Shows an alert notification when multiple faces are detected
+     * Conditionally includes vibration based on user settings.
+     * 
      * @param faceCount Number of faces detected
+     * 
+     * Requirements: 4.2, 4.3
      */
     fun showMultipleFacesAlert(faceCount: Int) {
         val notificationIntent = Intent(context, MainActivity::class.java)
@@ -101,7 +142,7 @@ class NotificationHelper(private val context: Context) {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val notification = NotificationCompat.Builder(context, ALERT_CHANNEL_ID)
+        val builder = NotificationCompat.Builder(context, ALERT_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentTitle("⚠️ Multiple Faces Detected!")
             .setContentText("$faceCount faces detected. Someone might be peeking!")
@@ -113,10 +154,15 @@ class NotificationHelper(private val context: Context) {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setAutoCancel(true)
-            .setVibrate(longArrayOf(0, 500, 200, 500)) // Vibration pattern
-            .build()
+        
+        // Conditionally add vibration based on user setting (Requirements: 4.2, 4.3)
+        if (vibrationEnabled) {
+            builder.setVibrate(longArrayOf(0, 500, 200, 500)) // Vibration pattern
+        } else {
+            builder.setVibrate(longArrayOf(0)) // No vibration
+        }
 
-        notificationManager.notify(ALERT_NOTIFICATION_ID, notification)
+        notificationManager.notify(ALERT_NOTIFICATION_ID, builder.build())
     }
 
     /**

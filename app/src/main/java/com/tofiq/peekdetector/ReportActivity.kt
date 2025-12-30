@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -25,6 +26,9 @@ import androidx.compose.ui.unit.sp
 import com.tofiq.peekdetector.data.AppDatabase
 import com.tofiq.peekdetector.data.DetectionEvent
 import com.tofiq.peekdetector.data.DetectionRepository
+import com.tofiq.peekdetector.data.SettingsRepositoryImpl
+import com.tofiq.peekdetector.data.ThemeMode
+import com.tofiq.peekdetector.data.settingsDataStore
 import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -46,7 +50,22 @@ class ReportActivity : ComponentActivity() {
         repository = DetectionRepository(database.detectionEventDao())
         
         setContent {
-            PeekDetectorTheme {
+            val settingsRepository = remember {
+                SettingsRepositoryImpl(applicationContext.settingsDataStore)
+            }
+            
+            // Collect theme mode to apply correct theme
+            val themeMode by settingsRepository.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+            
+            // Determine if dark theme should be used based on setting
+            // Requirements: 5.2, 5.3, 5.4, 5.6
+            val darkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            
+            PeekDetectorTheme(darkTheme = darkTheme) {
                 ReportScreen(
                     repository = repository,
                     onBackPressed = { finish() }
@@ -66,11 +85,6 @@ fun ReportScreen(
     val tabs = listOf("Weekly", "Monthly", "Yearly")
     
     val scope = rememberCoroutineScope()
-    
-    // Collect statistics
-    val weeklyDetections by repository.getWeeklyDetections().collectAsState(initial = emptyList())
-    val monthlyDetections by repository.getMonthlyDetections().collectAsState(initial = emptyList())
-    val yearlyDetections by repository.getYearlyDetections().collectAsState(initial = emptyList())
     
     var showDeleteDialog by remember { mutableStateOf(false) }
     
@@ -132,7 +146,7 @@ fun ReportScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                // Tab Row
+                // Tab Row - pass lambda to defer state read
                 TabRow(
                     selectedTabIndex = selectedTabIndex,
                     containerColor = Color(0xFF1565C0),
@@ -153,55 +167,100 @@ fun ReportScreen(
                     }
                 }
                 
-                // Content based on selected tab
+                // Content based on selected tab - only collect data for active tab
+                // This defers state collection to the leaf composables
                 when (selectedTabIndex) {
-                    0 -> DetectionListContent(
-                        title = "This Week",
-                        detections = weeklyDetections,
-                        emptyMessage = "No detections this week"
-                    )
-                    1 -> DetectionListContent(
-                        title = "This Month",
-                        detections = monthlyDetections,
-                        emptyMessage = "No detections this month"
-                    )
-                    2 -> DetectionListContent(
-                        title = "This Year",
-                        detections = yearlyDetections,
-                        emptyMessage = "No detections this year"
-                    )
+                    0 -> WeeklyDetectionContent(repository = repository)
+                    1 -> MonthlyDetectionContent(repository = repository)
+                    2 -> YearlyDetectionContent(repository = repository)
                 }
             }
         }
         
         // Delete confirmation dialog
-        if (showDeleteDialog) {
-            AlertDialog(
-                onDismissRequest = { showDeleteDialog = false },
-                title = { Text("Clear All Data") },
-                text = { Text("Are you sure you want to delete all detection records? This action cannot be undone.") },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            scope.launch {
-                                repository.deleteAllDetections()
-                                showDeleteDialog = false
-                            }
-                        },
-                        colors = ButtonDefaults.textButtonColors(
-                            contentColor = Color(0xFFFF5252)
-                        )
-                    ) {
-                        Text("Delete")
-                    }
-                },
-                dismissButton = {
-                    TextButton(onClick = { showDeleteDialog = false }) {
-                        Text("Cancel")
-                    }
+        DeleteConfirmationDialog(
+            showDialog = showDeleteDialog,
+            onDismiss = { showDeleteDialog = false },
+            onConfirm = {
+                scope.launch {
+                    repository.deleteAllDetections()
+                    showDeleteDialog = false
                 }
-            )
-        }
+            }
+        )
+    }
+}
+
+/**
+ * Stateful composable that only collects weekly data when this tab is active
+ * Defers state read to prevent unnecessary recomposition of other tabs
+ */
+@Composable
+private fun WeeklyDetectionContent(repository: DetectionRepository) {
+    val weeklyDetections by repository.getWeeklyDetections().collectAsState(initial = emptyList())
+    DetectionListContent(
+        title = "This Week",
+        detections = weeklyDetections,
+        emptyMessage = "No detections this week"
+    )
+}
+
+/**
+ * Stateful composable that only collects monthly data when this tab is active
+ */
+@Composable
+private fun MonthlyDetectionContent(repository: DetectionRepository) {
+    val monthlyDetections by repository.getMonthlyDetections().collectAsState(initial = emptyList())
+    DetectionListContent(
+        title = "This Month",
+        detections = monthlyDetections,
+        emptyMessage = "No detections this month"
+    )
+}
+
+/**
+ * Stateful composable that only collects yearly data when this tab is active
+ */
+@Composable
+private fun YearlyDetectionContent(repository: DetectionRepository) {
+    val yearlyDetections by repository.getYearlyDetections().collectAsState(initial = emptyList())
+    DetectionListContent(
+        title = "This Year",
+        detections = yearlyDetections,
+        emptyMessage = "No detections this year"
+    )
+}
+
+/**
+ * Extracted dialog composable for better recomposition isolation
+ */
+@Composable
+private fun DeleteConfirmationDialog(
+    showDialog: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = { Text("Clear All Data") },
+            text = { Text("Are you sure you want to delete all detection records? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = onConfirm,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFFFF5252)
+                    )
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismiss) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

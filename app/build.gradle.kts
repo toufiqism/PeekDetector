@@ -40,6 +40,11 @@ android {
     buildFeatures {
         compose = true
     }
+    testOptions {
+        unitTests.all {
+            it.useJUnitPlatform()
+        }
+    }
 }
 
 dependencies {
@@ -87,4 +92,19 @@ dependencies {
 
     // WorkManager for periodic background tasks
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+
+    // DataStore for settings persistence
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    // Kotest for property-based testing
+    testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
+    testImplementation("io.kotest:kotest-assertions-core:5.8.0")
+    testImplementation("io.kotest:kotest-property:5.8.0")
+    
+    // JUnit 5 for unit tests
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.10.0")
+    
+    // Coroutines test support
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
 }

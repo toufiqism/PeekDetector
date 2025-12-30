@@ -1,19 +1,16 @@
 package com.tofiq.peekdetector
 
-// ... (all the imports from the previous example)
-import android.app.Notification
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.PixelFormat
-import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
+import android.util.Size
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -22,24 +19,33 @@ import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888
 import androidx.camera.lifecycle.ProcessCameraProvider
-import android.util.Size
 import androidx.compose.runtime.mutableStateOf
-import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import com.tofiq.peekdetector.data.AppDatabase
 import com.tofiq.peekdetector.data.DetectionRepository
+import com.tofiq.peekdetector.data.SettingsRepositoryImpl
+import com.tofiq.peekdetector.data.settingsDataStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-
+/**
+ * Foreground service for continuous peek detection using the front camera.
+ * Supports smart detection mode that pauses detection when screen is off.
+ * 
+ * Requirements: 6.2, 6.3, 6.4
+ */
 class PeekDetectionService : Service() {
-    // --- NEW: Companion object to hold the service state ---
+    
     companion object {
+        private const val TAG = "PeekDetectionService"
         // This state is observable by Jetpack Compose
         val isRunning = mutableStateOf(false)
     }
@@ -57,17 +63,36 @@ class PeekDetectionService : Service() {
 
     // Track last notification time to avoid spam
     private var lastNotificationTime: Long = 0
-    private val notificationCooldown = 5000L // 5 seconds cooldown
+    
+    // Configurable notification cooldown from settings (in milliseconds)
+    // Default: 5 seconds, updated from settings repository
+    private var notificationCooldownMs = 5000L
 
     // Repository for database operations
     private lateinit var detectionRepository: DetectionRepository
+    
+    // Settings repository for reading user preferences
+    private lateinit var settingsRepository: SettingsRepositoryImpl
 
     // Coroutine scope for async operations
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    
+    // Smart detection components
+    private var screenStateReceiver: ScreenStateReceiver? = null
+    private var smartDetectionJob: Job? = null
+    private var isDetectionPaused = false
+    
+    // Current sensitivity level frame skip value (updated from settings)
+    @Volatile
+    private var currentFrameSkip = 3 // Default: MEDIUM sensitivity
+    
+    // Job for observing settings changes
+    private var settingsObserverJob: Job? = null
+
 
     override fun onCreate() {
         super.onCreate()
-        isRunning.value = true // Set state to running
+        isRunning.value = true
         cameraExecutor = Executors.newSingleThreadExecutor()
         serviceLifecycleOwner.start()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -76,6 +101,138 @@ class PeekDetectionService : Service() {
         // Initialize database repository
         val database = AppDatabase.getDatabase(this)
         detectionRepository = DetectionRepository(database.detectionEventDao())
+        
+        // Initialize settings repository
+        settingsRepository = SettingsRepositoryImpl(applicationContext.settingsDataStore)
+        
+        // Start observing settings
+        observeSettings()
+        
+        // Start observing smart detection setting
+        observeSmartDetectionSetting()
+    }
+    
+    /**
+     * Observes settings changes and updates service behavior accordingly.
+     * 
+     * Requirements: 2.2, 2.3, 2.4, 3.3
+     */
+    private fun observeSettings() {
+        settingsObserverJob = serviceScope.launch {
+            // Observe sensitivity level changes
+            launch {
+                settingsRepository.sensitivityLevel.collectLatest { level ->
+                    currentFrameSkip = level.frameSkip
+                    Log.d(TAG, "Sensitivity level updated: $level (frameSkip: $currentFrameSkip)")
+                }
+            }
+            
+            // Observe notification cooldown changes
+            launch {
+                settingsRepository.notificationCooldown.collectLatest { seconds ->
+                    notificationCooldownMs = seconds * 1000L
+                    Log.d(TAG, "Notification cooldown updated: ${seconds}s")
+                }
+            }
+        }
+    }
+
+    /**
+     * Observes the smart detection setting and manages the ScreenStateReceiver accordingly.
+     * When smart detection is enabled, registers the receiver and observes screen state.
+     * When disabled, unregisters the receiver and ensures detection is always active.
+     * 
+     * Requirements: 6.2, 6.3, 6.4
+     */
+    private fun observeSmartDetectionSetting() {
+        smartDetectionJob = serviceScope.launch(Dispatchers.Main) {
+            settingsRepository.smartDetectionEnabled.collectLatest { enabled ->
+                if (enabled) {
+                    registerScreenStateReceiver()
+                    observeScreenState()
+                } else {
+                    unregisterScreenStateReceiver()
+                    resumeDetection()
+                }
+            }
+        }
+    }
+    
+    /**
+     * Registers the ScreenStateReceiver to listen for screen on/off events.
+     * 
+     * Requirements: 6.2
+     */
+    private fun registerScreenStateReceiver() {
+        if (screenStateReceiver == null) {
+            screenStateReceiver = ScreenStateReceiver()
+            val filter = ScreenStateReceiver.createIntentFilter()
+            registerReceiver(screenStateReceiver, filter)
+            Log.d(TAG, "ScreenStateReceiver registered")
+        }
+    }
+    
+    /**
+     * Unregisters the ScreenStateReceiver when smart detection is disabled.
+     * 
+     * Requirements: 6.4
+     */
+    private fun unregisterScreenStateReceiver() {
+        screenStateReceiver?.let {
+            try {
+                unregisterReceiver(it)
+                Log.d(TAG, "ScreenStateReceiver unregistered")
+            } catch (e: IllegalArgumentException) {
+                Log.w(TAG, "ScreenStateReceiver was not registered", e)
+            }
+            screenStateReceiver = null
+            ScreenStateReceiver.resetState()
+        }
+    }
+    
+    /**
+     * Observes screen state changes and pauses/resumes detection accordingly.
+     * 
+     * Requirements: 6.2, 6.3
+     */
+    private fun observeScreenState() {
+        serviceScope.launch(Dispatchers.Main) {
+            ScreenStateReceiver.isScreenOn.collectLatest { isScreenOn ->
+                if (isScreenOn) {
+                    resumeDetection()
+                } else {
+                    pauseDetection()
+                }
+            }
+        }
+    }
+    
+    /**
+     * Pauses face detection by unbinding the camera use case.
+     * Called when screen turns off and smart detection is enabled.
+     * 
+     * Requirements: 6.2
+     */
+    private fun pauseDetection() {
+        if (!isDetectionPaused) {
+            Log.d(TAG, "Pausing detection (screen off)")
+            cameraProvider?.unbindAll()
+            isDetectionPaused = true
+        }
+    }
+    
+    /**
+     * Resumes face detection by rebinding the camera use case.
+     * Called when screen turns on and smart detection is enabled.
+     * 
+     * Requirements: 6.3
+     */
+    private fun resumeDetection() {
+        if (isDetectionPaused) {
+            Log.d(TAG, "Resuming detection (screen on)")
+            startCamera()
+            isDetectionPaused = false
+        }
     }
 
     /**
@@ -84,22 +241,25 @@ class PeekDetectionService : Service() {
      * - Lower resolution still sufficient for face detection accuracy
      * - YUV_420_888 format optimized for ML Kit processing
      * - KEEP_ONLY_LATEST strategy drops old frames to prevent backlog
+     * - Frame skip is configurable via settings (Requirements: 2.2, 2.3, 2.4)
      */
     private val imageAnalyzer by lazy {
         ImageAnalysis.Builder()
-            .setTargetResolution(Size(640, 480)) // Reduced from default ~1920x1080 for battery savings
-            .setOutputImageFormat(OUTPUT_IMAGE_FORMAT_YUV_420_888) // Optimized format for ML Kit
+            .setTargetResolution(Size(640, 480))
+            .setOutputImageFormat(OUTPUT_IMAGE_FORMAT_YUV_420_888)
             .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
             .build()
             .also {
-                it.setAnalyzer(cameraExecutor, PeekDetectorAnalyzer({ numFaces ->
-                    if (numFaces > 1) {
-                        Log.d("PeekDetectionService", "PEEKING DETECTED! $numFaces faces")
-//                        triggerPeekAlertOverlay()
-                        showMultipleFacesNotification(numFaces)
-                        saveDetectionToDatabase(numFaces)
-                    }
-                }))
+                it.setAnalyzer(cameraExecutor, PeekDetectorAnalyzer(
+                    listener = { numFaces ->
+                        if (numFaces > 1) {
+                            Log.d(TAG, "PEEKING DETECTED! $numFaces faces")
+                            showMultipleFacesNotification(numFaces)
+                            saveDetectionToDatabase(numFaces)
+                        }
+                    },
+                    getFrameSkip = { currentFrameSkip }
+                ))
             }
     }
 
@@ -122,25 +282,30 @@ class PeekDetectionService : Service() {
                     imageAnalyzer
                 )
             } catch (exc: Exception) {
-                Log.e("PeekDetectionService", "Use case binding failed", exc)
+                Log.e(TAG, "Use case binding failed", exc)
             }
         }, ContextCompat.getMainExecutor(this))
     }
 
-    // ... (startForegroundService() method from previous example)
-
-    // ... (triggerPeekAlertOverlay() and hideOverlay() methods from previous example)
-
     override fun onDestroy() {
         super.onDestroy()
-        isRunning.value = false // Set state to not running
+        isRunning.value = false
+        
+        // Clean up settings observer
+        settingsObserverJob?.cancel()
+        
+        // Clean up smart detection
+        smartDetectionJob?.cancel()
+        unregisterScreenStateReceiver()
+        
         cameraProvider?.unbindAll()
         cameraExecutor.shutdown()
         serviceLifecycleOwner.stop()
-        serviceScope.cancel() // Cancel coroutine scope
+        serviceScope.cancel()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+    
     private fun hideOverlay() {
         if (overlayView != null) {
             windowManager.removeView(overlayView)
@@ -148,13 +313,11 @@ class PeekDetectionService : Service() {
         }
     }
 
-    // This is the new alert method
     private fun triggerPeekAlertOverlay() {
-        // Ensure we run on the main thread
         Handler(Looper.getMainLooper()).post {
             if (overlayView == null) {
                 overlayView = FrameLayout(this)
-                overlayView?.setBackgroundColor(Color.argb(150, 0, 0, 0)) // Semi-transparent black
+                overlayView?.setBackgroundColor(Color.argb(150, 0, 0, 0))
 
                 val params = WindowManager.LayoutParams(
                     WindowManager.LayoutParams.MATCH_PARENT,
@@ -166,10 +329,9 @@ class PeekDetectionService : Service() {
                 params.gravity = Gravity.CENTER
                 windowManager.addView(overlayView, params)
 
-                // Hide the overlay after a few seconds
                 Handler(Looper.getMainLooper()).postDelayed({
                     hideOverlay()
-                }, 3000) // Hide after 3 seconds
+                }, 3000)
             }
         }
     }
@@ -182,22 +344,19 @@ class PeekDetectionService : Service() {
     /**
      * Shows a notification when multiple faces are detected
      * Implements cooldown to prevent notification spam
+     * 
+     * Requirements: 3.3
      */
     private fun showMultipleFacesNotification(numFaces: Int) {
         val currentTime = System.currentTimeMillis()
 
-        // Check if enough time has passed since last notification (cooldown period)
-        if (currentTime - lastNotificationTime >= notificationCooldown) {
-            // Check if notification permission is granted
+        if (currentTime - lastNotificationTime >= notificationCooldownMs) {
             if (notificationHelper.hasNotificationPermission()) {
                 notificationHelper.showMultipleFacesAlert(numFaces)
                 lastNotificationTime = currentTime
-                Log.d("PeekDetectionService", "Alert notification shown for $numFaces faces")
+                Log.d(TAG, "Alert notification shown for $numFaces faces")
             } else {
-                Log.w(
-                    "PeekDetectionService",
-                    "Notification permission not granted, skipping notification"
-                )
+                Log.w(TAG, "Notification permission not granted, skipping notification")
             }
         }
     }
@@ -209,9 +368,9 @@ class PeekDetectionService : Service() {
         serviceScope.launch {
             try {
                 detectionRepository.insertDetection(numFaces)
-                Log.d("PeekDetectionService", "Detection saved to database: $numFaces faces")
+                Log.d(TAG, "Detection saved to database: $numFaces faces")
             } catch (e: Exception) {
-                Log.e("PeekDetectionService", "Failed to save detection to database", e)
+                Log.e(TAG, "Failed to save detection to database", e)
             }
         }
     }
