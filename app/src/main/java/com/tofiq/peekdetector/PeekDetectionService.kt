@@ -255,6 +255,7 @@ class PeekDetectionService : Service() {
                         if (numFaces > 1) {
                             Log.d(TAG, "PEEKING DETECTED! $numFaces faces")
                             showMultipleFacesNotification(numFaces)
+                            triggerPeekAlertOverlay(numFaces)
                             saveDetectionToDatabase(numFaces)
                         }
                     },
@@ -313,11 +314,26 @@ class PeekDetectionService : Service() {
         }
     }
 
-    private fun triggerPeekAlertOverlay() {
+    private fun triggerPeekAlertOverlay(faceCount: Int) {
         Handler(Looper.getMainLooper()).post {
             if (overlayView == null) {
-                overlayView = FrameLayout(this)
-                overlayView?.setBackgroundColor(Color.argb(150, 0, 0, 0))
+                overlayView = FrameLayout(this).apply {
+                    setBackgroundColor(Color.argb(150, 0, 0, 0))
+                    
+                    // Add text view to show face count
+                    val textView = android.widget.TextView(this@PeekDetectionService).apply {
+                        text = "⚠️ $faceCount faces detected!\nSomeone might be peeking!"
+                        setTextColor(Color.WHITE)
+                        textSize = 24f
+                        gravity = Gravity.CENTER
+                        setPadding(32, 32, 32, 32)
+                    }
+                    addView(textView, FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                        Gravity.CENTER
+                    ))
+                }
 
                 val params = WindowManager.LayoutParams(
                     WindowManager.LayoutParams.MATCH_PARENT,
