@@ -14,16 +14,23 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -32,15 +39,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Settings
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.google.firebase.crashlytics.FirebaseCrashlytics
 import com.tofiq.peekdetector.data.local.AppDatabase
 import com.tofiq.peekdetector.data.local.settingsDataStore
 import com.tofiq.peekdetector.data.model.ThemeMode
@@ -53,54 +56,33 @@ import com.tofiq.peekdetector.feature.panic.ui.SlideToAlertComponent
 import com.tofiq.peekdetector.feature.report.export.ReportExportWorker
 import com.tofiq.peekdetector.feature.report.ui.ReportActivity
 import com.tofiq.peekdetector.feature.settings.ui.SettingsActivity
+import com.tofiq.peekdetector.ui.components.*
 import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         scheduleReportExport()
-
         setContent {
             val settingsRepository = remember {
                 SettingsRepositoryImpl(applicationContext.settingsDataStore)
             }
-            
             val themeMode by settingsRepository.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
-            
             val darkTheme = when (themeMode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
             }
-            
             PeekDetectorTheme(darkTheme = darkTheme) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFF0D47A1),
-                                        Color(0xFF1565C0),
-                                        Color(0xFF1976D2)
-                                    )
-                                )
-                            )
-                    )
-
+                FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = true
+                GradientBackground {
                     Image(
                         painter = painterResource(id = R.drawable.pattern_overlay),
                         contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .alpha(0.05f),
+                        modifier = Modifier.fillMaxSize().alpha(0.03f),
                         contentScale = ContentScale.Crop
                     )
-
                     PeekAppScreen()
                 }
             }
@@ -113,14 +95,10 @@ class MainActivity : ComponentActivity() {
             .setRequiresBatteryNotLow(true)
             .setRequiredNetworkType(androidx.work.NetworkType.NOT_REQUIRED)
             .build()
-
         val workRequest = PeriodicWorkRequestBuilder<ReportExportWorker>(
             repeatInterval = 1,
             repeatIntervalTimeUnit = TimeUnit.DAYS
-        )
-            .setConstraints(constraints)
-            .build()
-
+        ).setConstraints(constraints).build()
         WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
             ReportExportWorker.WORK_NAME,
             ExistingPeriodicWorkPolicy.KEEP,
@@ -129,68 +107,40 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
 @Composable
 fun PeekAppScreen() {
     val context = LocalContext.current
-
     var hasCameraPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         )
     }
-
     var hasNotificationPermission by remember {
         mutableStateOf(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
+            } else true
         )
     }
-
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            hasCameraPermission = isGranted
-        }
+        onResult = { isGranted -> hasCameraPermission = isGranted }
     )
-
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { isGranted ->
-            hasNotificationPermission = isGranted
-        }
+        onResult = { isGranted -> hasNotificationPermission = isGranted }
     )
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize().padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         when {
-            !hasCameraPermission -> {
-                PermissionRequestUI(cameraPermissionLauncher, context)
-            }
-
-            !hasNotificationPermission -> {
-                NotificationPermissionRequestUI(
-                    notificationPermissionLauncher,
-                    onSkip = { hasNotificationPermission = true }
-                )
-            }
-
-            else -> {
-                MainContent()
-            }
+            !hasCameraPermission -> PermissionRequestUI(cameraPermissionLauncher, context)
+            !hasNotificationPermission -> NotificationPermissionRequestUI(notificationPermissionLauncher, onSkip = { hasNotificationPermission = true })
+            else -> MainContent()
         }
     }
 }
@@ -198,45 +148,26 @@ fun PeekAppScreen() {
 @Composable
 private fun MainContent() {
     val context = LocalContext.current
+    val colors = PeekDetectorTheme.extendedColors
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 16.dp),
-        horizontalArrangement = Arrangement.End
-    ) {
-        IconButton(
-            onClick = {
-                val intent = Intent(context, SettingsActivity::class.java)
-                context.startActivity(intent)
+    Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.End) {
+            IconButton(onClick = { context.startActivity(Intent(context, SettingsActivity::class.java)) }) {
+                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = colors.textOnGradient, modifier = Modifier.size(28.dp))
             }
-        ) {
-            Icon(
-                Icons.Default.Settings,
-                contentDescription = "Settings",
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
-            )
         }
+        Spacer(modifier = Modifier.weight(0.5f))
+        DetectionCounterCardStateful(context)
+        Spacer(modifier = Modifier.height(32.dp))
+        ServiceStatusStateful()
+        Spacer(modifier = Modifier.height(32.dp))
+        ControlButtonsStateful()
+        Spacer(modifier = Modifier.height(16.dp))
+        ViewReportsButton()
+        Spacer(modifier = Modifier.weight(1f))
+        PanicAlertSectionStateful()
+        Spacer(modifier = Modifier.height(16.dp))
     }
-
-    DetectionCounterCardStateful(context)
-
-    Spacer(modifier = Modifier.height(24.dp))
-
-    ServiceStatusStateful()
-
-    Spacer(modifier = Modifier.height(32.dp))
-
-    ControlButtonsStateful()
-
-    Spacer(modifier = Modifier.height(16.dp))
-
-    ViewReportsButton()
-
-    Spacer(modifier = Modifier.height(24.dp))
-
-    PanicAlertSectionStateful()
 }
 
 @Composable
@@ -246,11 +177,7 @@ private fun DetectionCounterCardStateful(context: Context) {
         DetectionRepository(database.detectionEventDao())
     }
     val totalDetections by repository.getTotalDetectionsCount().collectAsState(initial = 0)
-    
-    DetectionCounterCard(
-        totalDetections = totalDetections,
-        context = context
-    )
+    DetectionCounterCard(totalDetections = totalDetections)
 }
 
 @Composable
@@ -269,24 +196,18 @@ private fun ControlButtonsStateful() {
 @Composable
 private fun ViewReportsButton() {
     val context = LocalContext.current
-    Button(
-        modifier = Modifier.fillMaxWidth(0.8f),
-        onClick = {
-            val intent = Intent(context, ReportActivity::class.java)
-            context.startActivity(intent)
-        },
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF64B5F6)
+    OutlinedButton(
+        modifier = Modifier.fillMaxWidth(0.85f).height(52.dp),
+        onClick = { context.startActivity(Intent(context, ReportActivity::class.java)) },
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
+        border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(
+            brush = androidx.compose.ui.graphics.SolidColor(Color.White.copy(alpha = 0.5f))
         )
     ) {
-        Icon(
-            Icons.Default.MoreVert,
-            contentDescription = "Reports",
-            tint = Color.White,
-            modifier = Modifier.size(20.dp)
-        )
+        Icon(Icons.Outlined.MoreVert, contentDescription = "Reports", modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text("View Reports", color = Color.White)
+        Text("View Reports", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -294,85 +215,48 @@ private fun ViewReportsButton() {
 private fun PanicAlertSectionStateful() {
     val context = LocalContext.current
     val isPanicAlertActive by PanicAlertService.isActive
-    
-    AnimatedVisibility(visible = !isPanicAlertActive) {
+    AnimatedVisibility(visible = !isPanicAlertActive, enter = fadeIn() + slideInVertically { it }, exit = fadeOut() + slideOutVertically { it }) {
         SlideToAlertComponent(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .padding(vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth(0.9f).padding(vertical = 8.dp),
             enabled = true,
-            onAlertTriggered = {
-                PanicAlertService.start(context)
-            }
+            onAlertTriggered = { PanicAlertService.start(context) }
         )
     }
-    
-    AnimatedVisibility(visible = isPanicAlertActive) {
+    AnimatedVisibility(visible = isPanicAlertActive, enter = fadeIn() + slideInVertically { -it }, exit = fadeOut() + slideOutVertically { -it }) {
         PanicAlertActiveUI(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .padding(vertical = 8.dp),
-            onStopClicked = {
-                PanicAlertService.stop(context)
-            }
+            modifier = Modifier.fillMaxWidth(0.9f).padding(vertical = 8.dp),
+            onStopClicked = { PanicAlertService.stop(context) }
         )
     }
 }
 
+
 @Composable
-fun DetectionCounterCard(totalDetections: Int, context: Context) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(0.9f)
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = 0.95f)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = "Total Detections",
-                fontSize = 16.sp,
-                color = Color(0xFF0D47A1),
-                fontWeight = FontWeight.Medium
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+fun DetectionCounterCard(totalDetections: Int) {
+    val colors = PeekDetectorTheme.extendedColors
+    AppCard(modifier = Modifier.fillMaxWidth(0.9f).padding(vertical = 8.dp), elevation = 8.dp) {
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(text = "Total Detections", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = totalDetections.toString(),
-                fontSize = 56.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = if (totalDetections == 0) Color(0xFF4CAF50) else Color(0xFFFF5252)
+                style = MaterialTheme.typography.displayLarge,
+                fontWeight = FontWeight.Bold,
+                color = if (totalDetections == 0) colors.success else colors.danger
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = if (totalDetections == 1) "Shoulder Surfer" else "Shoulder Surfers",
-                fontSize = 14.sp,
-                color = Color.Gray
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-
+            Spacer(modifier = Modifier.height(16.dp))
+            HorizontalDivider(modifier = Modifier.fillMaxWidth(0.8f), color = MaterialTheme.colorScheme.outlineVariant)
+            Spacer(modifier = Modifier.height(16.dp))
             if (totalDetections > 0) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "🔒 Stay vigilant!",
-                    fontSize = 12.sp,
-                    color = Color(0xFFFF9800),
-                    fontWeight = FontWeight.Medium
-                )
+                StatusBadge(text = "Stay vigilant!", isActive = false)
             } else {
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "✅ All clear!",
-                    fontSize = 12.sp,
-                    color = Color(0xFF4CAF50),
-                    fontWeight = FontWeight.Medium
-                )
+                StatusBadge(text = "All clear!", isActive = true)
             }
         }
     }
@@ -380,143 +264,84 @@ fun DetectionCounterCard(totalDetections: Int, context: Context) {
 
 @Composable
 fun ServiceStatus(isServiceRunning: Boolean) {
-    Text(
-        text = "Service Status",
-        style = MaterialTheme.typography.headlineSmall,
-        color = Color.White
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    val statusText = if (isServiceRunning) "Active" else "Inactive"
-    val statusColor = if (isServiceRunning) Color(0xFF4CAF50) else Color(0xFFFF5252)
-
-    Text(
-        text = statusText,
-        color = statusColor,
-        fontWeight = FontWeight.Bold,
-        fontSize = 20.sp
-    )
+    val colors = PeekDetectorTheme.extendedColors
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = "Protection Status", style = MaterialTheme.typography.titleMedium, color = colors.textOnGradient.copy(alpha = 0.8f))
+        Spacer(modifier = Modifier.height(12.dp))
+        StatusBadge(text = if (isServiceRunning) "Active" else "Inactive", isActive = isServiceRunning)
+    }
 }
 
 @Composable
 fun ControlButtons(isServiceRunning: Boolean, context: Context) {
-    AnimatedVisibility(visible = !isServiceRunning) {
-        Button(
-            modifier = Modifier.fillMaxWidth(0.8f),
-            onClick = {
-                val intent = Intent(context, PeekDetectionService::class.java)
-                context.startService(intent)
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF4CAF50)
-            )
-        ) {
-            Text("Start Protection", color = Color.White)
-        }
+    AnimatedVisibility(visible = !isServiceRunning, enter = fadeIn() + slideInVertically { -it / 2 }, exit = fadeOut() + slideOutVertically { -it / 2 }) {
+        SuccessButton(
+            text = "Start Protection",
+            onClick = { context.startService(Intent(context, PeekDetectionService::class.java)) },
+            modifier = Modifier.fillMaxWidth(0.85f),
+            icon = Icons.Default.PlayArrow
+        )
     }
-
-    AnimatedVisibility(visible = isServiceRunning) {
-        Button(
-            modifier = Modifier.fillMaxWidth(0.8f),
-            onClick = {
-                val intent = Intent(context, PeekDetectionService::class.java)
-                context.stopService(intent)
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF5252))
-        ) {
-            Text("Stop Protection", color = Color.White)
-        }
+    AnimatedVisibility(visible = isServiceRunning, enter = fadeIn() + slideInVertically { it / 2 }, exit = fadeOut() + slideOutVertically { it / 2 }) {
+        DangerButton(
+            text = "Stop Protection",
+            onClick = { context.stopService(Intent(context, PeekDetectionService::class.java)) },
+            modifier = Modifier.fillMaxWidth(0.85f)
+        )
     }
 }
 
 @Composable
 fun PermissionRequestUI(launcher: ActivityResultLauncher<String>, context: Context) {
-    Text(
-        "Camera Permission Required",
-        style = MaterialTheme.typography.headlineSmall,
-        color = Color.White
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(
-        "This app needs camera access to detect faces.",
-        textAlign = TextAlign.Center,
-        color = Color.White.copy(alpha = 0.9f)
-    )
-    Spacer(modifier = Modifier.height(16.dp))
-    Button(
-        onClick = {
-            launcher.launch(Manifest.permission.CAMERA)
-        },
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF64B5F6)
-        )
-    ) {
-        Text("Grant Camera Permission", color = Color.White)
-    }
-    
-    val canDrawOverlays = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-        Settings.canDrawOverlays(context)
-    } else {
-        true
-    }
-    if (!canDrawOverlays) {
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "For screen overlay alerts to work, please grant the 'Draw over other apps' permission.",
-            textAlign = TextAlign.Center,
-            color = Color(0xFFFF5252)
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Button(
-            onClick = {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    Uri.parse("package:${context.packageName}")
-                )
-                context.startActivity(intent)
-            },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFFFF5252)
-            )
-        ) {
-            Text("Open Settings", color = Color.White)
-        }
+    val colors = PeekDetectorTheme.extendedColors
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
+        Text(text = "📷", style = MaterialTheme.typography.displayLarge)
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Camera Permission Required", style = MaterialTheme.typography.headlineSmall, color = colors.textOnGradient, textAlign = TextAlign.Center)
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("This app needs camera access to detect faces and protect your privacy.", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge, color = colors.textOnGradient.copy(alpha = 0.8f))
         Spacer(modifier = Modifier.height(32.dp))
+        PrimaryButton(text = "Grant Camera Permission", onClick = { launcher.launch(Manifest.permission.CAMERA) }, modifier = Modifier.fillMaxWidth(0.85f))
+        
+        val canDrawOverlays = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Settings.canDrawOverlays(context) else true
+        if (!canDrawOverlays) {
+            Spacer(modifier = Modifier.height(24.dp))
+            GlassCard(modifier = Modifier.fillMaxWidth(0.9f), alpha = 0.15f) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = "⚠️ Overlay Permission", style = MaterialTheme.typography.titleMedium, color = colors.warning, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = "For screen overlay alerts to work, please grant the 'Draw over other apps' permission.", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium, color = colors.textOnGradient.copy(alpha = 0.8f))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    DangerButton(
+                        text = "Open Settings",
+                        onClick = { context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))) },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
     }
 }
 
 @Composable
-fun NotificationPermissionRequestUI(
-    launcher: ActivityResultLauncher<String>,
-    onSkip: () -> Unit
-) {
-    Text(
-        "Notification Permission Required",
-        style = MaterialTheme.typography.headlineSmall,
-        textAlign = TextAlign.Center,
-        color = Color.White
-    )
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(
-        "This app needs notification permission to alert you when multiple faces are detected.",
-        textAlign = TextAlign.Center,
-        color = Color.White.copy(alpha = 0.9f)
-    )
-    Spacer(modifier = Modifier.height(16.dp))
-    Button(
-        onClick = {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        },
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color(0xFF64B5F6)
+fun NotificationPermissionRequestUI(launcher: ActivityResultLauncher<String>, onSkip: () -> Unit) {
+    val colors = PeekDetectorTheme.extendedColors
+    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
+        Text(text = "🔔", style = MaterialTheme.typography.displayLarge)
+        Spacer(modifier = Modifier.height(24.dp))
+        Text("Notification Permission", style = MaterialTheme.typography.headlineSmall, color = colors.textOnGradient, textAlign = TextAlign.Center)
+        Spacer(modifier = Modifier.height(12.dp))
+        Text("Enable notifications to receive alerts when multiple faces are detected.", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge, color = colors.textOnGradient.copy(alpha = 0.8f))
+        Spacer(modifier = Modifier.height(32.dp))
+        PrimaryButton(
+            text = "Enable Notifications",
+            onClick = { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) launcher.launch(Manifest.permission.POST_NOTIFICATIONS) },
+            modifier = Modifier.fillMaxWidth(0.85f)
         )
-    ) {
-        Text("Grant Notification Permission", color = Color.White)
-    }
-    Spacer(modifier = Modifier.height(8.dp))
-    TextButton(onClick = onSkip) {
-        Text("Skip (Can enable later in settings)", color = Color.White.copy(alpha = 0.7f))
+        Spacer(modifier = Modifier.height(12.dp))
+        TextButton(onClick = onSkip) {
+            Text("Skip for now", style = MaterialTheme.typography.labelLarge, color = colors.textOnGradient.copy(alpha = 0.6f))
+        }
     }
 }
 
@@ -524,6 +349,6 @@ fun NotificationPermissionRequestUI(
 @Composable
 fun DefaultPreview() {
     PeekDetectorTheme {
-        PeekAppScreen()
+        GradientBackground { PeekAppScreen() }
     }
 }
