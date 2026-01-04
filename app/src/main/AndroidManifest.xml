@@ -29,13 +29,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PeekDetector">
         <service
-            android:name=".PeekDetectionService"
+            android:name=".feature.detection.service.PeekDetectionService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="camera" />
         
         <service
-            android:name=".PanicAlertService"
+            android:name=".feature.panic.service.PanicAlertService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback" />
@@ -54,7 +54,7 @@
         </activity>
         
         <activity
-            android:name=".ReportActivity"
+            android:name=".feature.report.ui.ReportActivity"
             android:exported="false"
             android:label="Detection Reports"
             android:theme="@style/Theme.PeekDetector"
@@ -65,7 +65,7 @@
         </activity>
         
         <activity
-            android:name=".SettingsActivity"
+            android:name=".feature.settings.ui.SettingsActivity"
             android:exported="false"
             android:label="Settings"
             android:theme="@style/Theme.PeekDetector"

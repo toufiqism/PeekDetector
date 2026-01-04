@@ -41,14 +41,19 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.tofiq.peekdetector.data.AppDatabase
-import com.tofiq.peekdetector.data.DetectionRepository
-import com.tofiq.peekdetector.data.SettingsRepositoryImpl
-import com.tofiq.peekdetector.data.ThemeMode
-import com.tofiq.peekdetector.data.settingsDataStore
-import com.tofiq.peekdetector.ui.PanicAlertActiveUI
-import com.tofiq.peekdetector.ui.SlideToAlertComponent
-import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme // Change to your theme name
+import com.tofiq.peekdetector.data.local.AppDatabase
+import com.tofiq.peekdetector.data.local.settingsDataStore
+import com.tofiq.peekdetector.data.model.ThemeMode
+import com.tofiq.peekdetector.data.repository.DetectionRepository
+import com.tofiq.peekdetector.data.repository.SettingsRepositoryImpl
+import com.tofiq.peekdetector.feature.detection.service.PeekDetectionService
+import com.tofiq.peekdetector.feature.panic.service.PanicAlertService
+import com.tofiq.peekdetector.feature.panic.ui.PanicAlertActiveUI
+import com.tofiq.peekdetector.feature.panic.ui.SlideToAlertComponent
+import com.tofiq.peekdetector.feature.report.export.ReportExportWorker
+import com.tofiq.peekdetector.feature.report.ui.ReportActivity
+import com.tofiq.peekdetector.feature.settings.ui.SettingsActivity
+import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
@@ -56,7 +61,6 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize WorkManager for daily report export
         scheduleReportExport()
 
         setContent {
@@ -64,11 +68,8 @@ class MainActivity : ComponentActivity() {
                 SettingsRepositoryImpl(applicationContext.settingsDataStore)
             }
             
-            // Collect theme mode to apply correct theme
             val themeMode by settingsRepository.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
             
-            // Determine if dark theme should be used based on setting
-            // Requirements: 5.2, 5.3, 5.4, 5.6
             val darkTheme = when (themeMode) {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
@@ -76,10 +77,7 @@ class MainActivity : ComponentActivity() {
             }
             
             PeekDetectorTheme(darkTheme = darkTheme) {
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    // Background gradient
+                Box(modifier = Modifier.fillMaxSize()) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -94,7 +92,6 @@ class MainActivity : ComponentActivity() {
                             )
                     )
 
-                    // Pattern overlay
                     Image(
                         painter = painterResource(id = R.drawable.pattern_overlay),
                         contentDescription = null,
@@ -104,27 +101,17 @@ class MainActivity : ComponentActivity() {
                         contentScale = ContentScale.Crop
                     )
 
-                    // Main content
                     PeekAppScreen()
                 }
             }
         }
     }
 
-    /**
-     * Schedules periodic report export using WorkManager
-     * Runs once every 24 hours to export detection reports to Downloads folder
-     *
-     * Battery optimizations:
-     * - Requires device charging or sufficient battery to minimize impact
-     * - Defers execution until optimal conditions (WiFi/unmetered network preferred)
-     * - Uses ExistingPeriodicWorkPolicy.KEEP to avoid duplicate work requests
-     */
     private fun scheduleReportExport() {
         val constraints = androidx.work.Constraints.Builder()
-            .setRequiresCharging(false) // Allow on battery, but prefer charging
-            .setRequiresBatteryNotLow(true) // Don't run if battery is low
-            .setRequiredNetworkType(androidx.work.NetworkType.NOT_REQUIRED) // No network needed
+            .setRequiresCharging(false)
+            .setRequiresBatteryNotLow(true)
+            .setRequiredNetworkType(androidx.work.NetworkType.NOT_REQUIRED)
             .build()
 
         val workRequest = PeriodicWorkRequestBuilder<ReportExportWorker>(
@@ -136,7 +123,7 @@ class MainActivity : ComponentActivity() {
 
         WorkManager.getInstance(applicationContext).enqueueUniquePeriodicWork(
             ReportExportWorker.WORK_NAME,
-            ExistingPeriodicWorkPolicy.KEEP, // Keep existing work, don't replace
+            ExistingPeriodicWorkPolicy.KEEP,
             workRequest
         )
     }
@@ -146,7 +133,6 @@ class MainActivity : ComponentActivity() {
 fun PeekAppScreen() {
     val context = LocalContext.current
 
-    // Permission states - these change rarely, so kept at this level
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(
@@ -203,22 +189,16 @@ fun PeekAppScreen() {
             }
 
             else -> {
-                // Main content - state reads deferred to child composables
                 MainContent()
             }
         }
     }
 }
 
-/**
- * Main content composable that defers state reads to leaf composables
- * This prevents recomposition of the entire tree when individual states change
- */
 @Composable
 private fun MainContent() {
     val context = LocalContext.current
 
-    // Settings button at the top
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -240,34 +220,25 @@ private fun MainContent() {
         }
     }
 
-    // Detection counter with deferred state read
     DetectionCounterCardStateful(context)
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    // Service status with deferred state read
     ServiceStatusStateful()
 
     Spacer(modifier = Modifier.height(32.dp))
 
-    // Control buttons with deferred state read
     ControlButtonsStateful()
 
     Spacer(modifier = Modifier.height(16.dp))
 
-    // View Reports Button - no state dependency, stable
     ViewReportsButton()
 
     Spacer(modifier = Modifier.height(24.dp))
 
-    // Panic Alert Section with deferred state read
-    // Requirements: 1.1, 4.1, 4.3, 4.4
     PanicAlertSectionStateful()
 }
 
-/**
- * Stateful wrapper that reads detection count as late as possible
- */
 @Composable
 private fun DetectionCounterCardStateful(context: Context) {
     val repository = remember {
@@ -282,18 +253,12 @@ private fun DetectionCounterCardStateful(context: Context) {
     )
 }
 
-/**
- * Stateful wrapper that reads service running state as late as possible
- */
 @Composable
 private fun ServiceStatusStateful() {
     val isServiceRunning by PeekDetectionService.isRunning
     ServiceStatus(isServiceRunning = isServiceRunning)
 }
 
-/**
- * Stateful wrapper that reads service running state as late as possible
- */
 @Composable
 private fun ControlButtonsStateful() {
     val context = LocalContext.current
@@ -301,9 +266,6 @@ private fun ControlButtonsStateful() {
     ControlButtons(isServiceRunning = isServiceRunning, context = context)
 }
 
-/**
- * Stable composable with no state dependencies - won't recompose unnecessarily
- */
 @Composable
 private fun ViewReportsButton() {
     val context = LocalContext.current
@@ -328,23 +290,11 @@ private fun ViewReportsButton() {
     }
 }
 
-/**
- * Stateful wrapper for the panic alert section that reads alert state as late as possible.
- * Shows SlideToAlertComponent when inactive, PanicAlertActiveUI when active.
- * 
- * Requirements:
- * - 1.1: Display a clearly visible slider element on the main screen
- * - 4.1: Display instructional text indicating how to activate when inactive
- * - 4.3: Hide slider when alert is active
- * - 4.4: Use high-contrast colors for accessibility
- */
 @Composable
 private fun PanicAlertSectionStateful() {
     val context = LocalContext.current
     val isPanicAlertActive by PanicAlertService.isActive
     
-    // Show SlideToAlertComponent when inactive, PanicAlertActiveUI when active
-    // Requirement 4.3: Slider hidden when active
     AnimatedVisibility(visible = !isPanicAlertActive) {
         SlideToAlertComponent(
             modifier = Modifier
@@ -352,21 +302,17 @@ private fun PanicAlertSectionStateful() {
                 .padding(vertical = 8.dp),
             enabled = true,
             onAlertTriggered = {
-                // Start the panic alert service
                 PanicAlertService.start(context)
             }
         )
     }
     
-    // Show PanicAlertActiveUI when alert is active
-    // Requirement 3.1: Display prominent stop button while active
     AnimatedVisibility(visible = isPanicAlertActive) {
         PanicAlertActiveUI(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .padding(vertical = 8.dp),
             onStopClicked = {
-                // Stop the panic alert service
                 PanicAlertService.stop(context)
             }
         )
@@ -453,7 +399,6 @@ fun ServiceStatus(isServiceRunning: Boolean) {
 
 @Composable
 fun ControlButtons(isServiceRunning: Boolean, context: Context) {
-    // AnimatedVisibility provides a nice fade-in/out effect
     AnimatedVisibility(visible = !isServiceRunning) {
         Button(
             modifier = Modifier.fillMaxWidth(0.8f),
@@ -507,7 +452,7 @@ fun PermissionRequestUI(launcher: ActivityResultLauncher<String>, context: Conte
     ) {
         Text("Grant Camera Permission", color = Color.White)
     }
-    // Check for "Draw over other apps" permission
+    
     val canDrawOverlays = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
         Settings.canDrawOverlays(context)
     } else {
