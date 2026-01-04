@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -16,7 +17,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme
 
 /**
  * UI component displayed when the panic alert is active.
@@ -34,6 +35,7 @@ fun PanicAlertActiveUI(
     onStopClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = PeekDetectorTheme.extendedColors
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.6f,
@@ -49,7 +51,7 @@ fun PanicAlertActiveUI(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(Color(0xFFFF5252).copy(alpha = pulseAlpha))
+            .background(colors.danger.copy(alpha = pulseAlpha))
             .padding(24.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -60,7 +62,7 @@ fun PanicAlertActiveUI(
             Text(
                 text = "ALERT ACTIVE",
                 color = Color.White,
-                fontSize = 24.sp,
+                style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
             
@@ -71,13 +73,13 @@ fun PanicAlertActiveUI(
                     .clip(CircleShape),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
-                    contentColor = Color(0xFFFF5252)
+                    contentColor = colors.danger
                 ),
                 shape = CircleShape
             ) {
                 Text(
                     text = "STOP",
-                    fontSize = 20.sp,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
             }

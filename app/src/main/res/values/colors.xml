@@ -1,10 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
+    <!-- Primary brand colors -->
+    <color name="primary">#FF1565C0</color>
+    <color name="primary_dark">#FF0D47A1</color>
+    <color name="primary_light">#FF1976D2</color>
+    
+    <!-- Secondary colors -->
+    <color name="secondary">#FF00897B</color>
+    <color name="secondary_dark">#FF00695C</color>
+    
+    <!-- Accent/Tertiary colors -->
+    <color name="accent">#FFFF8F00</color>
+    
+    <!-- Status colors -->
+    <color name="success">#FF2E7D32</color>
+    <color name="warning">#FFF57C00</color>
+    <color name="danger">#FFD32F2F</color>
+    
+    <!-- Background colors -->
+    <color name="background_light">#FFF8FAFF</color>
+    <color name="background_dark">#FF0F1419</color>
+    
+    <!-- Surface colors -->
+    <color name="surface_light">#FFFDFCFF</color>
+    <color name="surface_dark">#FF1A1C1E</color>
+    
+    <!-- Basic colors -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- Gradient colors -->
+    <color name="gradient_start">#FF0D47A1</color>
+    <color name="gradient_mid">#FF1565C0</color>
+    <color name="gradient_end">#FF1976D2</color>
 </resources>

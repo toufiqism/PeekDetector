@@ -10,9 +10,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,8 +24,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.tofiq.peekdetector.feature.panic.PanicAlertConstants
+import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme
 import kotlinx.coroutines.launch
 
 /**
@@ -48,6 +49,7 @@ fun SlideToAlertComponent(
 ) {
     val density = LocalDensity.current
     val coroutineScope = rememberCoroutineScope()
+    val colors = PeekDetectorTheme.extendedColors
     
     var trackSize by remember { mutableStateOf(IntSize.Zero) }
     
@@ -78,7 +80,7 @@ fun SlideToAlertComponent(
             .fillMaxWidth()
             .height(72.dp)
             .clip(RoundedCornerShape(36.dp))
-            .background(Color(0xFF2D2D2D))
+            .background(colors.surfaceElevated.copy(alpha = 0.15f))
             .onSizeChanged { trackSize = it },
         contentAlignment = Alignment.CenterStart
     ) {
@@ -89,15 +91,15 @@ fun SlideToAlertComponent(
                 .fillMaxWidth(progress)
                 .clip(RoundedCornerShape(36.dp))
                 .background(
-                    Color(0xFFFF5252).copy(alpha = 0.3f + (progress * 0.4f))
+                    colors.danger.copy(alpha = 0.3f + (progress * 0.4f))
                 )
         )
         
         // Instructional text
         Text(
             text = "Slide to Alert →",
-            color = Color.White.copy(alpha = 0.7f),
-            fontSize = 16.sp,
+            color = colors.textOnGradient.copy(alpha = 0.7f),
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
             modifier = Modifier
                 .align(Alignment.Center)
@@ -113,9 +115,9 @@ fun SlideToAlertComponent(
                 .clip(CircleShape)
                 .background(
                     if (progress >= PanicAlertConstants.SWIPE_THRESHOLD) {
-                        Color(0xFFFF5252)
+                        colors.danger
                     } else {
-                        Color(0xFFFF8A80)
+                        colors.danger.copy(alpha = 0.7f)
                     }
                 )
                 .draggable(
@@ -136,7 +138,7 @@ fun SlideToAlertComponent(
             contentAlignment = Alignment.Center
         ) {
             Icon(
-                imageVector = Icons.Default.KeyboardArrowRight,
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Slide to alert",
                 tint = Color.White,
                 modifier = Modifier.size(32.dp)
