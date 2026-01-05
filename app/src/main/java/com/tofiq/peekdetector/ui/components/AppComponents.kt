@@ -1,102 +1,30 @@
 package com.tofiq.peekdetector.ui.components
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+/**
+ * This file re-exports all UI components for backward compatibility.
+ * Components have been separated into individual files for better reusability:
+ * 
+ * - Buttons.kt: AppButton, ButtonStyle
+ * - Cards.kt: StyledCard, CardStyle, GradientBackground
+ * - Dialogs.kt: ConfirmationDialog
+ * - EmptyState.kt: EmptyStateDisplay
+ * - PermissionUI.kt: PermissionRequestCard, PermissionWarningBanner
+ * - Preferences.kt: PreferenceItem, SwitchPreferenceItem, RadioOptionItem, SliderPreferenceItem
+ * - Statistics.kt: StatusBadge, CounterDisplay, StatItem, LargeStatDisplay, SectionHeader
+ * 
+ * Legacy components (PrimaryButton, SuccessButton, DangerButton, AppCard, GlassCard)
+ * are kept below for backward compatibility but delegate to the new unified components.
+ */
+
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme
 
 /**
- * Gradient background that adapts to theme
- */
-@Composable
-fun GradientBackground(
-    modifier: Modifier = Modifier,
-    content: @Composable BoxScope.() -> Unit
-) {
-    val colors = PeekDetectorTheme.extendedColors
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .background(
-                brush = Brush.linearGradient(
-                    colors = listOf(
-                        colors.gradientStart,
-                        colors.gradientMid,
-                        colors.gradientEnd
-                    )
-                )
-            ),
-        content = content
-    )
-}
-
-/**
- * Elevated card with consistent styling
- */
-@Composable
-fun AppCard(
-    modifier: Modifier = Modifier,
-    elevation: Dp = 4.dp,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    val colors = PeekDetectorTheme.extendedColors
-    Card(
-        modifier = modifier
-            .shadow(
-                elevation = elevation,
-                shape = RoundedCornerShape(16.dp),
-                ambientColor = Color.Black.copy(alpha = 0.1f),
-                spotColor = Color.Black.copy(alpha = 0.15f)
-            ),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = colors.cardBackground
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            content = content
-        )
-    }
-}
-
-/**
- * Translucent card for use on gradient backgrounds
- */
-@Composable
-fun GlassCard(
-    modifier: Modifier = Modifier,
-    alpha: Float = 0.12f,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    Card(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White.copy(alpha = alpha)
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            content = content
-        )
-    }
-}
-
-/**
- * Primary action button with consistent styling
+ * @deprecated Use AppButton with ButtonStyle.PRIMARY instead
  */
 @Composable
 fun PrimaryButton(
@@ -106,40 +34,18 @@ fun PrimaryButton(
     enabled: Boolean = true,
     icon: ImageVector? = null
 ) {
-    Button(
+    AppButton(
+        text = text,
         onClick = onClick,
-        modifier = modifier.height(52.dp),
+        modifier = modifier,
+        style = ButtonStyle.PRIMARY,
         enabled = enabled,
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-            disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
-            disabledContentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-        ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 4.dp
-        )
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-        }
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
+        icon = icon
+    )
 }
 
 /**
- * Success button (green)
+ * @deprecated Use AppButton with ButtonStyle.SUCCESS instead
  */
 @Composable
 fun SuccessButton(
@@ -149,39 +55,18 @@ fun SuccessButton(
     enabled: Boolean = true,
     icon: ImageVector? = null
 ) {
-    val colors = PeekDetectorTheme.extendedColors
-    Button(
+    AppButton(
+        text = text,
         onClick = onClick,
-        modifier = modifier.height(52.dp),
+        modifier = modifier,
+        style = ButtonStyle.SUCCESS,
         enabled = enabled,
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = colors.success,
-            contentColor = Color.White
-        ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 4.dp
-        )
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-        }
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
+        icon = icon
+    )
 }
 
 /**
- * Danger button (red)
+ * @deprecated Use AppButton with ButtonStyle.DANGER instead
  */
 @Composable
 fun DangerButton(
@@ -191,121 +76,46 @@ fun DangerButton(
     enabled: Boolean = true,
     icon: ImageVector? = null
 ) {
-    val colors = PeekDetectorTheme.extendedColors
-    Button(
+    AppButton(
+        text = text,
         onClick = onClick,
-        modifier = modifier.height(52.dp),
+        modifier = modifier,
+        style = ButtonStyle.DANGER,
         enabled = enabled,
-        shape = RoundedCornerShape(12.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = colors.danger,
-            contentColor = Color.White
-        ),
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 2.dp,
-            pressedElevation = 4.dp
-        )
-    ) {
-        if (icon != null) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-        }
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold
-        )
-    }
-}
-
-/**
- * Section header for settings and lists
- */
-@Composable
-fun SectionHeader(
-    title: String,
-    modifier: Modifier = Modifier
-) {
-    val colors = PeekDetectorTheme.extendedColors
-    Text(
-        text = title.uppercase(),
-        style = MaterialTheme.typography.labelMedium,
-        color = colors.textOnGradient.copy(alpha = 0.7f),
-        fontWeight = FontWeight.Bold,
-        modifier = modifier.padding(vertical = 12.dp)
+        icon = icon
     )
 }
 
 /**
- * Status indicator badge
+ * @deprecated Use StyledCard with CardStyle.ELEVATED instead
  */
 @Composable
-fun StatusBadge(
-    text: String,
-    isActive: Boolean,
-    modifier: Modifier = Modifier
+fun AppCard(
+    modifier: Modifier = Modifier,
+    elevation: Dp = 4.dp,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    val colors = PeekDetectorTheme.extendedColors
-    val backgroundColor = if (isActive) colors.success else colors.danger
-    
-    Surface(
+    StyledCard(
         modifier = modifier,
-        shape = RoundedCornerShape(20.dp),
-        color = backgroundColor.copy(alpha = 0.15f)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(backgroundColor)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelMedium,
-                color = backgroundColor,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
+        style = CardStyle.ELEVATED,
+        elevation = elevation,
+        content = content
+    )
 }
 
 /**
- * Counter display for statistics
+ * @deprecated Use StyledCard with CardStyle.GLASS instead
  */
 @Composable
-fun CounterDisplay(
-    count: Int,
-    label: String,
+fun GlassCard(
     modifier: Modifier = Modifier,
-    isWarning: Boolean = false
+    alpha: Float = 0.12f,
+    content: @Composable ColumnScope.() -> Unit
 ) {
-    val colors = PeekDetectorTheme.extendedColors
-    val countColor = if (isWarning && count > 0) colors.danger else colors.success
-    
-    Column(
+    StyledCard(
         modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.displayMedium,
-            color = countColor,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
+        style = CardStyle.GLASS,
+        glassAlpha = alpha,
+        content = content
+    )
 }
