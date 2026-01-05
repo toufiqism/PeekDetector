@@ -21,9 +21,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import com.tofiq.peekdetector.R
 import com.tofiq.peekdetector.feature.panic.PanicAlertConstants
 import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme
 import kotlinx.coroutines.launch
@@ -97,7 +99,7 @@ fun SlideToAlertComponent(
         
         // Instructional text
         Text(
-            text = "Slide to Alert →",
+            text = stringResource(R.string.slide_to_alert),
             color = colors.textOnGradient.copy(alpha = 0.7f),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Medium,
@@ -139,7 +141,7 @@ fun SlideToAlertComponent(
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = "Slide to alert",
+                contentDescription = stringResource(R.string.slide_to_alert_content_desc),
                 tint = Color.White,
                 modifier = Modifier.size(32.dp)
             )

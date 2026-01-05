@@ -14,9 +14,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.tofiq.peekdetector.R
 import com.tofiq.peekdetector.ui.theme.PeekDetectorTheme
 
 /**
@@ -60,7 +62,7 @@ fun PanicAlertActiveUI(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                text = "ALERT ACTIVE",
+                text = stringResource(R.string.alert_active),
                 color = Color.White,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
@@ -78,7 +80,7 @@ fun PanicAlertActiveUI(
                 shape = CircleShape
             ) {
                 Text(
-                    text = "STOP",
+                    text = stringResource(R.string.stop),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )

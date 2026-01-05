@@ -29,9 +29,6 @@ class NotificationHelper(private val context: Context) {
         const val ALERT_CHANNEL_ID = "peek_alert_channel"
         const val FOREGROUND_NOTIFICATION_ID = 1
         const val ALERT_NOTIFICATION_ID = 2
-        
-        private const val FOREGROUND_CHANNEL_NAME = "Peek Detection Service"
-        private const val ALERT_CHANNEL_NAME = "Peek Detection Alerts"
     }
 
     private val notificationManager: NotificationManager =
@@ -77,20 +74,20 @@ class NotificationHelper(private val context: Context) {
             // Channel for foreground service
             val foregroundChannel = NotificationChannel(
                 FOREGROUND_CHANNEL_ID,
-                FOREGROUND_CHANNEL_NAME,
+                context.getString(R.string.foreground_channel_name),
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Shows when Peek Detection is running"
+                description = context.getString(R.string.foreground_channel_description)
                 setShowBadge(false)
             }
 
             // Channel for peek detection alerts
             val alertChannel = NotificationChannel(
                 ALERT_CHANNEL_ID,
-                ALERT_CHANNEL_NAME,
+                context.getString(R.string.alert_channel_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Alerts when multiple faces are detected"
+                description = context.getString(R.string.alert_channel_description)
                 enableVibration(true)
                 enableLights(true)
                 setShowBadge(true)
@@ -117,8 +114,8 @@ class NotificationHelper(private val context: Context) {
         return NotificationCompat.Builder(context, FOREGROUND_CHANNEL_ID)
             .setOngoing(true)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("Peek Protection is Active")
-            .setContentText("Monitoring for shoulder surfers.")
+            .setContentTitle(context.getString(R.string.notification_title_protection_active))
+            .setContentText(context.getString(R.string.notification_text_monitoring))
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setCategory(NotificationCompat.CATEGORY_SERVICE)
@@ -144,11 +141,11 @@ class NotificationHelper(private val context: Context) {
 
         val builder = NotificationCompat.Builder(context, ALERT_CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("⚠️ Multiple Faces Detected!")
-            .setContentText("$faceCount faces detected. Someone might be peeking!")
+            .setContentTitle(context.getString(R.string.notification_title_multiple_faces))
+            .setContentText(context.getString(R.string.notification_text_faces_detected, faceCount))
             .setStyle(
                 NotificationCompat.BigTextStyle()
-                    .bigText("$faceCount faces detected. Someone might be looking at your screen. Please be aware of your surroundings.")
+                    .bigText(context.getString(R.string.notification_text_faces_detected_long, faceCount))
             )
             .setContentIntent(pendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)

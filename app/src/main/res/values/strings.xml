@@ -1,3 +1,125 @@
 <resources>
     <string name="app_name">PeekDetector</string>
+    
+    <!-- Common -->
+    <string name="back">Back</string>
+    <string name="settings">Settings</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="reset">Reset</string>
+    <string name="stop">STOP</string>
+    
+    <!-- Main Activity -->
+    <string name="total_detections">Total Detections</string>
+    <string name="shoulder_surfer">Shoulder Surfer</string>
+    <string name="shoulder_surfers">Shoulder Surfers</string>
+    <string name="stay_vigilant">Stay vigilant!</string>
+    <string name="all_clear">All clear!</string>
+    <string name="protection_status">Protection Status</string>
+    <string name="status_active">Active</string>
+    <string name="status_inactive">Inactive</string>
+    <string name="start_protection">Start Protection</string>
+    <string name="stop_protection">Stop Protection</string>
+    <string name="view_reports">View Reports</string>
+    <string name="reports">Reports</string>
+    
+    <!-- Permissions -->
+    <string name="camera_permission_required">Camera Permission Required</string>
+    <string name="camera_permission_description">This app needs camera access to detect faces and protect your privacy.</string>
+    <string name="grant_camera_permission">Grant Camera Permission</string>
+    <string name="notification_permission">Notification Permission</string>
+    <string name="notification_permission_description">Enable notifications to receive alerts when multiple faces are detected.</string>
+    <string name="enable_notifications">Enable Notifications</string>
+    <string name="skip_for_now">Skip for now</string>
+    <string name="overlay_permission">⚠️ Overlay Permission</string>
+    <string name="overlay_permission_required">⚠️ Overlay Permission Required</string>
+    <string name="overlay_permission_description">For screen overlay alerts to work, please grant the \'Draw over other apps\' permission.</string>
+    <string name="overlay_permission_warning">Screen overlay alerts won\'t work without this permission.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="grant_permission">Grant Permission</string>
+    
+    <!-- Report Activity -->
+    <string name="detection_reports">Detection Reports</string>
+    <string name="clear_all_data">Clear All Data</string>
+    <string name="tab_weekly">Weekly</string>
+    <string name="tab_monthly">Monthly</string>
+    <string name="tab_yearly">Yearly</string>
+    <string name="this_week">This Week</string>
+    <string name="this_month">This Month</string>
+    <string name="this_year">This Year</string>
+    <string name="detection">Detection</string>
+    <string name="detections">Detections</string>
+    <string name="total_faces">Total Faces</string>
+    <string name="avg_faces">Avg Faces</string>
+    <string name="max_faces">Max Faces</string>
+    <string name="detection_history">Detection History</string>
+    <string name="no_detections_this_week">No detections this week</string>
+    <string name="no_detections_this_month">No detections this month</string>
+    <string name="no_detections_this_year">No detections this year</string>
+    <string name="keep_privacy_protected">Keep your privacy protected!</string>
+    <string name="faces_detected">%d faces detected</string>
+    <string name="clear_all_data_title">Clear All Data</string>
+    <string name="clear_all_data_message">Are you sure you want to delete all detection records? This action cannot be undone.</string>
+    
+    <!-- Settings Activity -->
+    <string name="section_detection">Detection</string>
+    <string name="section_alerts">Alerts</string>
+    <string name="section_appearance">Appearance</string>
+    <string name="section_power">Power</string>
+    <string name="detection_sensitivity">Detection Sensitivity</string>
+    <string name="sensitivity_low">Low</string>
+    <string name="sensitivity_medium">Medium (Default)</string>
+    <string name="sensitivity_high">High</string>
+    <string name="sensitivity_low_desc">Lower battery usage, processes every 5th frame</string>
+    <string name="sensitivity_medium_desc">Balanced performance, processes every 3rd frame</string>
+    <string name="sensitivity_high_desc">Maximum accuracy, processes every frame</string>
+    <string name="notification_cooldown">Notification Cooldown</string>
+    <string name="minimum_time_between_alerts">Minimum time between alerts</string>
+    <string name="vibration">Vibration</string>
+    <string name="vibration_description">Vibrate on detection alerts</string>
+    <string name="theme">Theme</string>
+    <string name="theme_system">System Default</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="theme_system_desc">Follow device theme settings</string>
+    <string name="theme_light_desc">Always use light theme</string>
+    <string name="theme_dark_desc">Always use dark theme</string>
+    <string name="smart_detection">Smart Detection</string>
+    <string name="smart_detection_description">Pause detection when screen is off to save battery</string>
+    <string name="reset_to_defaults">Reset to Defaults</string>
+    <string name="reset_settings_title">Reset Settings?</string>
+    <string name="reset_settings_message">This will restore all settings to their default values. This action cannot be undone.</string>
+    
+    <!-- Notifications -->
+    <string name="foreground_channel_name">Peek Detection Service</string>
+    <string name="alert_channel_name">Peek Detection Alerts</string>
+    <string name="foreground_channel_description">Shows when Peek Detection is running</string>
+    <string name="alert_channel_description">Alerts when multiple faces are detected</string>
+    <string name="notification_title_protection_active">Peek Protection is Active</string>
+    <string name="notification_text_monitoring">Monitoring for shoulder surfers.</string>
+    <string name="notification_title_multiple_faces">⚠️ Multiple Faces Detected!</string>
+    <string name="notification_text_faces_detected">%d faces detected. Someone might be peeking!</string>
+    <string name="notification_text_faces_detected_long">%d faces detected. Someone might be looking at your screen. Please be aware of your surroundings.</string>
+    
+    <!-- Report Export -->
+    <string name="report_export_channel_name">Report Export</string>
+    <string name="report_export_channel_description">Notifications for detection report export status</string>
+    <string name="exporting_reports">Exporting Reports</string>
+    <string name="preparing_detection_reports">Preparing detection reports…</string>
+    <string name="reports_exported">Reports Exported</string>
+    <string name="detection_reports_saved_to">Detection reports saved to %s</string>
+    <string name="report_export_failed">Report Export Failed</string>
+    <string name="no_detection_events_found">No detection events found</string>
+    
+    <!-- Panic Alert -->
+    <string name="panic_alert_channel_name">Panic Alert</string>
+    <string name="panic_alert_channel_description">Panic alert siren notifications</string>
+    <string name="panic_alert_active">🚨 PANIC ALERT ACTIVE</string>
+    <string name="panic_alert_tap_to_open">Tap to open app or press STOP to silence</string>
+    <string name="alert_active">ALERT ACTIVE</string>
+    <string name="slide_to_alert">Slide to Alert →</string>
+    <string name="slide_to_alert_content_desc">Slide to alert</string>
+    
+    <!-- Detection Overlay -->
+    <string name="overlay_faces_detected">⚠️ %d faces detected!\nSomeone might be peeking!</string>
 </resources>

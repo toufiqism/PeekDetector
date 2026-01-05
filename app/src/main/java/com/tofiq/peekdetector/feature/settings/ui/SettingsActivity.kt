@@ -15,8 +15,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.tofiq.peekdetector.R
 import com.tofiq.peekdetector.data.local.SettingsDefaults
 import com.tofiq.peekdetector.data.local.settingsDataStore
 import com.tofiq.peekdetector.data.model.SensitivityLevel
@@ -61,10 +63,10 @@ fun SettingsScreen(repository: SettingsRepository, onBackClick: () -> Unit) {
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
-                    title = { Text("Settings", color = colors.textOnGradient, fontWeight = FontWeight.Bold) },
+                    title = { Text(stringResource(R.string.settings), color = colors.textOnGradient, fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = onBackClick) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = colors.textOnGradient)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = colors.textOnGradient)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -75,20 +77,20 @@ fun SettingsScreen(repository: SettingsRepository, onBackClick: () -> Unit) {
                 modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                item { SectionHeader(title = "Detection") }
+                item { SectionHeader(title = stringResource(R.string.section_detection)) }
                 item { SensitivitySelector(selected = sensitivity, onSelect = { scope.launch { repository.setSensitivityLevel(it) } }) }
-                item { SectionHeader(title = "Alerts") }
+                item { SectionHeader(title = stringResource(R.string.section_alerts)) }
                 item { CooldownSlider(value = cooldown, onValueChange = { scope.launch { repository.setNotificationCooldown(it) } }) }
-                item { SwitchPreference(title = "Vibration", subtitle = "Vibrate on detection alerts", checked = vibrationEnabled, onCheckedChange = { scope.launch { repository.setVibrationEnabled(it) } }) }
-                item { SectionHeader(title = "Appearance") }
+                item { SwitchPreference(title = stringResource(R.string.vibration), subtitle = stringResource(R.string.vibration_description), checked = vibrationEnabled, onCheckedChange = { scope.launch { repository.setVibrationEnabled(it) } }) }
+                item { SectionHeader(title = stringResource(R.string.section_appearance)) }
                 item {
                     val themeMode by repository.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
                     ThemeSelector(selected = themeMode, onSelect = { scope.launch { repository.setThemeMode(it) } })
                 }
-                item { SectionHeader(title = "Power") }
+                item { SectionHeader(title = stringResource(R.string.section_power)) }
                 item {
                     val smartDetectionEnabled by repository.smartDetectionEnabled.collectAsState(initial = SettingsDefaults.SMART_DETECTION)
-                    SwitchPreference(title = "Smart Detection", subtitle = "Pause detection when screen is off to save battery", checked = smartDetectionEnabled, onCheckedChange = { scope.launch { repository.setSmartDetectionEnabled(it) } })
+                    SwitchPreference(title = stringResource(R.string.smart_detection), subtitle = stringResource(R.string.smart_detection_description), checked = smartDetectionEnabled, onCheckedChange = { scope.launch { repository.setSmartDetectionEnabled(it) } })
                 }
                 item { Spacer(modifier = Modifier.height(16.dp)) }
                 item { ResetToDefaultsButton(onReset = { scope.launch { repository.resetToDefaults() } }) }
@@ -104,7 +106,7 @@ fun SensitivitySelector(selected: SensitivityLevel, onSelect: (SensitivityLevel)
     val colors = PeekDetectorTheme.extendedColors
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Detection Sensitivity", color = colors.textOnGradient, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.titleMedium)
+            Text(text = stringResource(R.string.detection_sensitivity), color = colors.textOnGradient, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(12.dp))
             SensitivityLevel.entries.forEach { level ->
                 SensitivityOption(level = level, isSelected = selected == level, onSelect = { onSelect(level) })
@@ -128,16 +130,16 @@ private fun SensitivityOption(level: SensitivityLevel, isSelected: Boolean, onSe
         Spacer(modifier = Modifier.width(8.dp))
         Column {
             Text(
-                text = when (level) { SensitivityLevel.LOW -> "Low"; SensitivityLevel.MEDIUM -> "Medium (Default)"; SensitivityLevel.HIGH -> "High" },
+                text = when (level) { SensitivityLevel.LOW -> stringResource(R.string.sensitivity_low); SensitivityLevel.MEDIUM -> stringResource(R.string.sensitivity_medium); SensitivityLevel.HIGH -> stringResource(R.string.sensitivity_high) },
                 color = colors.textOnGradient,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
                 text = when (level) {
-                    SensitivityLevel.LOW -> "Lower battery usage, processes every 5th frame"
-                    SensitivityLevel.MEDIUM -> "Balanced performance, processes every 3rd frame"
-                    SensitivityLevel.HIGH -> "Maximum accuracy, processes every frame"
+                    SensitivityLevel.LOW -> stringResource(R.string.sensitivity_low_desc)
+                    SensitivityLevel.MEDIUM -> stringResource(R.string.sensitivity_medium_desc)
+                    SensitivityLevel.HIGH -> stringResource(R.string.sensitivity_high_desc)
                 },
                 color = colors.textOnGradient.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.bodySmall
@@ -152,11 +154,11 @@ fun CooldownSlider(value: Int, onValueChange: (Int) -> Unit) {
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "Notification Cooldown", color = colors.textOnGradient, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.titleMedium)
+                Text(text = stringResource(R.string.notification_cooldown), color = colors.textOnGradient, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.titleMedium)
                 Text(text = "${value}s", color = colors.textOnGradient, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
             }
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = "Minimum time between alerts", color = colors.textOnGradient.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
+            Text(text = stringResource(R.string.minimum_time_between_alerts), color = colors.textOnGradient.copy(alpha = 0.7f), style = MaterialTheme.typography.bodySmall)
             Spacer(modifier = Modifier.height(12.dp))
             Slider(
                 value = value.toFloat(),
@@ -203,7 +205,7 @@ fun ThemeSelector(selected: ThemeMode, onSelect: (ThemeMode) -> Unit) {
     val colors = PeekDetectorTheme.extendedColors
     GlassCard(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Text(text = "Theme", color = colors.textOnGradient, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.titleMedium)
+            Text(text = stringResource(R.string.theme), color = colors.textOnGradient, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.titleMedium)
             Spacer(modifier = Modifier.height(12.dp))
             ThemeMode.entries.forEach { mode ->
                 ThemeOption(mode = mode, isSelected = selected == mode, onSelect = { onSelect(mode) })
@@ -227,16 +229,16 @@ private fun ThemeOption(mode: ThemeMode, isSelected: Boolean, onSelect: () -> Un
         Spacer(modifier = Modifier.width(8.dp))
         Column {
             Text(
-                text = when (mode) { ThemeMode.SYSTEM -> "System Default"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" },
+                text = when (mode) { ThemeMode.SYSTEM -> stringResource(R.string.theme_system); ThemeMode.LIGHT -> stringResource(R.string.theme_light); ThemeMode.DARK -> stringResource(R.string.theme_dark) },
                 color = colors.textOnGradient,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                 style = MaterialTheme.typography.bodyLarge
             )
             Text(
                 text = when (mode) {
-                    ThemeMode.SYSTEM -> "Follow device theme settings"
-                    ThemeMode.LIGHT -> "Always use light theme"
-                    ThemeMode.DARK -> "Always use dark theme"
+                    ThemeMode.SYSTEM -> stringResource(R.string.theme_system_desc)
+                    ThemeMode.LIGHT -> stringResource(R.string.theme_light_desc)
+                    ThemeMode.DARK -> stringResource(R.string.theme_dark_desc)
                 },
                 color = colors.textOnGradient.copy(alpha = 0.7f),
                 style = MaterialTheme.typography.bodySmall
@@ -252,22 +254,22 @@ fun ResetToDefaultsButton(onReset: () -> Unit) {
     
     GlassCard(modifier = Modifier.fillMaxWidth().clickable { showConfirmDialog = true }) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "Reset to Defaults", color = colors.danger, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.titleMedium)
+            Text(text = stringResource(R.string.reset_to_defaults), color = colors.danger, fontWeight = FontWeight.Medium, style = MaterialTheme.typography.titleMedium)
         }
     }
     
     if (showConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmDialog = false },
-            title = { Text(text = "Reset Settings?", fontWeight = FontWeight.Bold) },
-            text = { Text(text = "This will restore all settings to their default values. This action cannot be undone.") },
+            title = { Text(text = stringResource(R.string.reset_settings_title), fontWeight = FontWeight.Bold) },
+            text = { Text(text = stringResource(R.string.reset_settings_message)) },
             confirmButton = {
                 TextButton(onClick = { onReset(); showConfirmDialog = false }) {
-                    Text(text = "Reset", color = colors.danger)
+                    Text(text = stringResource(R.string.reset), color = colors.danger)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showConfirmDialog = false }) { Text(text = "Cancel") }
+                TextButton(onClick = { showConfirmDialog = false }) { Text(text = stringResource(R.string.cancel)) }
             },
             shape = RoundedCornerShape(16.dp)
         )

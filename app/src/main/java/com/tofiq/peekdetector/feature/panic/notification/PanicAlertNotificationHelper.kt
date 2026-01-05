@@ -30,10 +30,10 @@ object PanicAlertNotificationHelper {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 PanicAlertConstants.NOTIFICATION_CHANNEL_ID,
-                "Panic Alert",
+                context.getString(R.string.panic_alert_channel_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Panic alert siren notifications"
+                description = context.getString(R.string.panic_alert_channel_description)
                 setShowBadge(true)
                 enableVibration(true)
             }
@@ -73,14 +73,14 @@ object PanicAlertNotificationHelper {
         return NotificationCompat.Builder(context, PanicAlertConstants.NOTIFICATION_CHANNEL_ID)
             .setOngoing(true)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle("🚨 PANIC ALERT ACTIVE")
-            .setContentText("Tap to open app or press STOP to silence")
+            .setContentTitle(context.getString(R.string.panic_alert_active))
+            .setContentText(context.getString(R.string.panic_alert_tap_to_open))
             .setContentIntent(openAppPendingIntent)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .addAction(
                 android.R.drawable.ic_media_pause,
-                "STOP",
+                context.getString(R.string.stop),
                 stopPendingIntent
             )
             .build()

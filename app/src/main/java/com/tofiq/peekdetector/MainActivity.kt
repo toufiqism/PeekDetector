@@ -38,6 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -165,7 +166,7 @@ private fun MainContent() {
         Spacer(modifier = Modifier.height(32.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.End) {
             IconButton(onClick = { context.startActivity(Intent(context, SettingsActivity::class.java)) }) {
-                Icon(Icons.Default.Settings, contentDescription = "Settings", tint = colors.textOnGradient, modifier = Modifier.size(28.dp))
+                Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.settings), tint = colors.textOnGradient, modifier = Modifier.size(28.dp))
             }
         }
         
@@ -223,9 +224,9 @@ private fun ViewReportsButton() {
             brush = androidx.compose.ui.graphics.SolidColor(Color.White.copy(alpha = 0.5f))
         )
     ) {
-        Icon(Icons.Outlined.MoreVert, contentDescription = "Reports", modifier = Modifier.size(20.dp))
+        Icon(Icons.Outlined.MoreVert, contentDescription = stringResource(R.string.reports), modifier = Modifier.size(20.dp))
         Spacer(modifier = Modifier.width(8.dp))
-        Text("View Reports", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        Text(stringResource(R.string.view_reports), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -254,7 +255,7 @@ fun DetectionCounterCard(totalDetections: Int) {
     val colors = PeekDetectorTheme.extendedColors
     AppCard(modifier = Modifier.fillMaxWidth(0.9f).padding(vertical = 8.dp), elevation = 8.dp) {
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(text = "Total Detections", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text(text = stringResource(R.string.total_detections), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = totalDetections.toString(),
@@ -264,7 +265,7 @@ fun DetectionCounterCard(totalDetections: Int) {
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = if (totalDetections == 1) "Shoulder Surfer" else "Shoulder Surfers",
+                text = if (totalDetections == 1) stringResource(R.string.shoulder_surfer) else stringResource(R.string.shoulder_surfers),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -272,9 +273,9 @@ fun DetectionCounterCard(totalDetections: Int) {
             HorizontalDivider(modifier = Modifier.fillMaxWidth(0.8f), color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(16.dp))
             if (totalDetections > 0) {
-                StatusBadge(text = "Stay vigilant!", isActive = false)
+                StatusBadge(text = stringResource(R.string.stay_vigilant), isActive = false)
             } else {
-                StatusBadge(text = "All clear!", isActive = true)
+                StatusBadge(text = stringResource(R.string.all_clear), isActive = true)
             }
         }
     }
@@ -284,9 +285,9 @@ fun DetectionCounterCard(totalDetections: Int) {
 fun ServiceStatus(isServiceRunning: Boolean) {
     val colors = PeekDetectorTheme.extendedColors
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = "Protection Status", style = MaterialTheme.typography.titleMedium, color = colors.textOnGradient.copy(alpha = 0.8f))
+        Text(text = stringResource(R.string.protection_status), style = MaterialTheme.typography.titleMedium, color = colors.textOnGradient.copy(alpha = 0.8f))
         Spacer(modifier = Modifier.height(12.dp))
-        StatusBadge(text = if (isServiceRunning) "Active" else "Inactive", isActive = isServiceRunning)
+        StatusBadge(text = if (isServiceRunning) stringResource(R.string.status_active) else stringResource(R.string.status_inactive), isActive = isServiceRunning)
     }
 }
 
@@ -294,7 +295,7 @@ fun ServiceStatus(isServiceRunning: Boolean) {
 fun ControlButtons(isServiceRunning: Boolean, context: Context) {
     AnimatedVisibility(visible = !isServiceRunning, enter = fadeIn() + slideInVertically { -it / 2 }, exit = fadeOut() + slideOutVertically { -it / 2 }) {
         SuccessButton(
-            text = "Start Protection",
+            text = stringResource(R.string.start_protection),
             onClick = { context.startService(Intent(context, PeekDetectionService::class.java)) },
             modifier = Modifier.fillMaxWidth(0.85f),
             icon = Icons.Default.PlayArrow
@@ -302,7 +303,7 @@ fun ControlButtons(isServiceRunning: Boolean, context: Context) {
     }
     AnimatedVisibility(visible = isServiceRunning, enter = fadeIn() + slideInVertically { it / 2 }, exit = fadeOut() + slideOutVertically { it / 2 }) {
         DangerButton(
-            text = "Stop Protection",
+            text = stringResource(R.string.stop_protection),
             onClick = { context.stopService(Intent(context, PeekDetectionService::class.java)) },
             modifier = Modifier.fillMaxWidth(0.85f)
         )
@@ -315,23 +316,23 @@ fun PermissionRequestUI(launcher: ActivityResultLauncher<String>, context: Conte
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
         Text(text = "📷", style = MaterialTheme.typography.displayLarge)
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Camera Permission Required", style = MaterialTheme.typography.headlineSmall, color = colors.textOnGradient, textAlign = TextAlign.Center)
+        Text(stringResource(R.string.camera_permission_required), style = MaterialTheme.typography.headlineSmall, color = colors.textOnGradient, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(12.dp))
-        Text("This app needs camera access to detect faces and protect your privacy.", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge, color = colors.textOnGradient.copy(alpha = 0.8f))
+        Text(stringResource(R.string.camera_permission_description), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge, color = colors.textOnGradient.copy(alpha = 0.8f))
         Spacer(modifier = Modifier.height(32.dp))
-        PrimaryButton(text = "Grant Camera Permission", onClick = { launcher.launch(Manifest.permission.CAMERA) }, modifier = Modifier.fillMaxWidth(0.85f))
+        PrimaryButton(text = stringResource(R.string.grant_camera_permission), onClick = { launcher.launch(Manifest.permission.CAMERA) }, modifier = Modifier.fillMaxWidth(0.85f))
         
         val canDrawOverlays = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Settings.canDrawOverlays(context) else true
         if (!canDrawOverlays) {
             Spacer(modifier = Modifier.height(24.dp))
             GlassCard(modifier = Modifier.fillMaxWidth(0.9f), alpha = 0.15f) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "⚠️ Overlay Permission", style = MaterialTheme.typography.titleMedium, color = colors.warning, fontWeight = FontWeight.SemiBold)
+                    Text(text = stringResource(R.string.overlay_permission), style = MaterialTheme.typography.titleMedium, color = colors.warning, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(text = "For screen overlay alerts to work, please grant the 'Draw over other apps' permission.", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium, color = colors.textOnGradient.copy(alpha = 0.8f))
+                    Text(text = stringResource(R.string.overlay_permission_description), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyMedium, color = colors.textOnGradient.copy(alpha = 0.8f))
                     Spacer(modifier = Modifier.height(16.dp))
                     DangerButton(
-                        text = "Open Settings",
+                        text = stringResource(R.string.open_settings),
                         onClick = { context.startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))) },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -347,18 +348,18 @@ fun NotificationPermissionRequestUI(launcher: ActivityResultLauncher<String>, on
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
         Text(text = "🔔", style = MaterialTheme.typography.displayLarge)
         Spacer(modifier = Modifier.height(24.dp))
-        Text("Notification Permission", style = MaterialTheme.typography.headlineSmall, color = colors.textOnGradient, textAlign = TextAlign.Center)
+        Text(stringResource(R.string.notification_permission), style = MaterialTheme.typography.headlineSmall, color = colors.textOnGradient, textAlign = TextAlign.Center)
         Spacer(modifier = Modifier.height(12.dp))
-        Text("Enable notifications to receive alerts when multiple faces are detected.", textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge, color = colors.textOnGradient.copy(alpha = 0.8f))
+        Text(stringResource(R.string.notification_permission_description), textAlign = TextAlign.Center, style = MaterialTheme.typography.bodyLarge, color = colors.textOnGradient.copy(alpha = 0.8f))
         Spacer(modifier = Modifier.height(32.dp))
         PrimaryButton(
-            text = "Enable Notifications",
+            text = stringResource(R.string.enable_notifications),
             onClick = { if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) launcher.launch(Manifest.permission.POST_NOTIFICATIONS) },
             modifier = Modifier.fillMaxWidth(0.85f)
         )
         Spacer(modifier = Modifier.height(12.dp))
         TextButton(onClick = onSkip) {
-            Text("Skip for now", style = MaterialTheme.typography.labelLarge, color = colors.textOnGradient.copy(alpha = 0.6f))
+            Text(stringResource(R.string.skip_for_now), style = MaterialTheme.typography.labelLarge, color = colors.textOnGradient.copy(alpha = 0.6f))
         }
     }
 }
@@ -377,14 +378,14 @@ private fun OverlayPermissionBanner(context: Context) {
     GlassCard(modifier = Modifier.fillMaxWidth(0.9f), alpha = 0.15f) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "⚠️ Overlay Permission Required",
+                text = stringResource(R.string.overlay_permission_required),
                 style = MaterialTheme.typography.titleSmall,
                 color = colors.warning,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "Screen overlay alerts won't work without this permission.",
+                text = stringResource(R.string.overlay_permission_warning),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.textOnGradient.copy(alpha = 0.8f)
@@ -397,7 +398,7 @@ private fun OverlayPermissionBanner(context: Context) {
                     )
                 }
             ) {
-                Text("Grant Permission", style = MaterialTheme.typography.labelMedium, color = colors.warning)
+                Text(stringResource(R.string.grant_permission), style = MaterialTheme.typography.labelMedium, color = colors.warning)
             }
         }
     }

@@ -17,8 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.tofiq.peekdetector.R
 import com.tofiq.peekdetector.data.local.AppDatabase
 import com.tofiq.peekdetector.data.local.settingsDataStore
 import com.tofiq.peekdetector.data.model.DetectionEvent
@@ -59,7 +61,7 @@ class ReportActivity : ComponentActivity() {
 @Composable
 fun ReportScreen(repository: DetectionRepository, onBackPressed: () -> Unit) {
     var selectedTabIndex by remember { mutableStateOf(0) }
-    val tabs = listOf("Weekly", "Monthly", "Yearly")
+    val tabs = listOf(R.string.tab_weekly, R.string.tab_monthly, R.string.tab_yearly)
     val scope = rememberCoroutineScope()
     var showDeleteDialog by remember { mutableStateOf(false) }
     val colors = PeekDetectorTheme.extendedColors
@@ -69,15 +71,15 @@ fun ReportScreen(repository: DetectionRepository, onBackPressed: () -> Unit) {
             containerColor = Color.Transparent,
             topBar = {
                 TopAppBar(
-                    title = { Text("Detection Reports", color = colors.textOnGradient, fontWeight = FontWeight.Bold) },
+                    title = { Text(stringResource(R.string.detection_reports), color = colors.textOnGradient, fontWeight = FontWeight.Bold) },
                     navigationIcon = {
                         IconButton(onClick = onBackPressed) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = colors.textOnGradient)
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back), tint = colors.textOnGradient)
                         }
                     },
                     actions = {
                         IconButton(onClick = { showDeleteDialog = true }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Clear All Data", tint = colors.textOnGradient)
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.clear_all_data), tint = colors.textOnGradient)
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
@@ -91,11 +93,11 @@ fun ReportScreen(repository: DetectionRepository, onBackPressed: () -> Unit) {
                     contentColor = colors.textOnGradient,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    tabs.forEachIndexed { index, title ->
+                    tabs.forEachIndexed { index, titleRes ->
                         Tab(
                             selected = selectedTabIndex == index,
                             onClick = { selectedTabIndex = index },
-                            text = { Text(title, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal) }
+                            text = { Text(stringResource(titleRes), fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal) }
                         )
                     }
                 }
@@ -118,19 +120,19 @@ fun ReportScreen(repository: DetectionRepository, onBackPressed: () -> Unit) {
 @Composable
 private fun WeeklyDetectionContent(repository: DetectionRepository) {
     val weeklyDetections by repository.getWeeklyDetections().collectAsState(initial = emptyList())
-    DetectionListContent(title = "This Week", detections = weeklyDetections, emptyMessage = "No detections this week")
+    DetectionListContent(title = stringResource(R.string.this_week), detections = weeklyDetections, emptyMessage = stringResource(R.string.no_detections_this_week))
 }
 
 @Composable
 private fun MonthlyDetectionContent(repository: DetectionRepository) {
     val monthlyDetections by repository.getMonthlyDetections().collectAsState(initial = emptyList())
-    DetectionListContent(title = "This Month", detections = monthlyDetections, emptyMessage = "No detections this month")
+    DetectionListContent(title = stringResource(R.string.this_month), detections = monthlyDetections, emptyMessage = stringResource(R.string.no_detections_this_month))
 }
 
 @Composable
 private fun YearlyDetectionContent(repository: DetectionRepository) {
     val yearlyDetections by repository.getYearlyDetections().collectAsState(initial = emptyList())
-    DetectionListContent(title = "This Year", detections = yearlyDetections, emptyMessage = "No detections this year")
+    DetectionListContent(title = stringResource(R.string.this_year), detections = yearlyDetections, emptyMessage = stringResource(R.string.no_detections_this_year))
 }
 
 @Composable
@@ -139,14 +141,14 @@ private fun DeleteConfirmationDialog(showDialog: Boolean, onDismiss: () -> Unit,
     if (showDialog) {
         AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Clear All Data", fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to delete all detection records? This action cannot be undone.") },
+            title = { Text(stringResource(R.string.clear_all_data_title), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.clear_all_data_message)) },
             confirmButton = {
                 TextButton(onClick = onConfirm, colors = ButtonDefaults.textButtonColors(contentColor = colors.danger)) {
-                    Text("Delete")
+                    Text(stringResource(R.string.delete))
                 }
             },
-            dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
             shape = RoundedCornerShape(16.dp)
         )
     }
@@ -168,22 +170,22 @@ fun DetectionListContent(title: String, detections: List<DetectionEvent>, emptyM
                     fontWeight = FontWeight.Bold,
                     color = if (detections.isEmpty()) colors.success else colors.danger
                 )
-                Text(text = if (detections.size == 1) "Detection" else "Detections", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = if (detections.size == 1) stringResource(R.string.detection) else stringResource(R.string.detections), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 
                 if (detections.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(16.dp))
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(16.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        StatItem(label = "Total Faces", value = detections.sumOf { it.faceCount }.toString())
-                        StatItem(label = "Avg Faces", value = String.format("%.1f", detections.map { it.faceCount }.average()))
-                        StatItem(label = "Max Faces", value = (detections.maxOfOrNull { it.faceCount } ?: 0).toString())
+                        StatItem(label = stringResource(R.string.total_faces), value = detections.sumOf { it.faceCount }.toString())
+                        StatItem(label = stringResource(R.string.avg_faces), value = String.format("%.1f", detections.map { it.faceCount }.average()))
+                        StatItem(label = stringResource(R.string.max_faces), value = (detections.maxOfOrNull { it.faceCount } ?: 0).toString())
                     }
                 }
             }
         }
         
-        Text(text = "Detection History", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.textOnGradient, modifier = Modifier.padding(bottom = 12.dp))
+        Text(text = stringResource(R.string.detection_history), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.textOnGradient, modifier = Modifier.padding(bottom = 12.dp))
         
         if (detections.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
@@ -192,7 +194,7 @@ fun DetectionListContent(title: String, detections: List<DetectionEvent>, emptyM
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(text = emptyMessage, style = MaterialTheme.typography.bodyLarge, color = colors.textOnGradient.copy(alpha = 0.7f), textAlign = TextAlign.Center)
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = "Keep your privacy protected!", style = MaterialTheme.typography.bodyMedium, color = colors.textOnGradient.copy(alpha = 0.5f), textAlign = TextAlign.Center)
+                    Text(text = stringResource(R.string.keep_privacy_protected), style = MaterialTheme.typography.bodyMedium, color = colors.textOnGradient.copy(alpha = 0.5f), textAlign = TextAlign.Center)
                 }
             }
         } else {
@@ -231,7 +233,7 @@ fun DetectionCard(detection: DetectionEvent) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = formattedDate, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "${detection.faceCount} faces detected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(text = stringResource(R.string.faces_detected, detection.faceCount), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Surface(
                 shape = RoundedCornerShape(20.dp),

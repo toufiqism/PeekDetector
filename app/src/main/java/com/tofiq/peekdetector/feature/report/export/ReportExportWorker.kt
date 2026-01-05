@@ -8,6 +8,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import com.tofiq.peekdetector.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -25,7 +26,6 @@ class ReportExportWorker(
         const val WORK_NAME = "report_export_work"
         
         private const val CHANNEL_ID = "report_export_channel"
-        private const val CHANNEL_NAME = "Report Export"
         private const val NOTIFICATION_ID = 1001
     }
 
@@ -67,10 +67,10 @@ class ReportExportWorker(
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                CHANNEL_NAME,
+                applicationContext.getString(R.string.report_export_channel_name),
                 NotificationManager.IMPORTANCE_DEFAULT
             ).apply {
-                description = "Notifications for detection report export status"
+                description = applicationContext.getString(R.string.report_export_channel_description)
                 setShowBadge(true)
             }
             
@@ -82,8 +82,8 @@ class ReportExportWorker(
     private fun showProgressNotification() {
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download)
-            .setContentTitle("Exporting Reports")
-            .setContentText("Preparing detection reports...")
+            .setContentTitle(applicationContext.getString(R.string.exporting_reports))
+            .setContentText(applicationContext.getString(R.string.preparing_detection_reports))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setOngoing(true)
             .build()
@@ -95,8 +95,8 @@ class ReportExportWorker(
     private fun showSuccessNotification(filePath: String) {
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_sys_download_done)
-            .setContentTitle("Reports Exported")
-            .setContentText("Detection reports saved to $filePath")
+            .setContentTitle(applicationContext.getString(R.string.reports_exported))
+            .setContentText(applicationContext.getString(R.string.detection_reports_saved_to, filePath))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)
             .build()
@@ -108,7 +108,7 @@ class ReportExportWorker(
     private fun showFailureNotification(errorMessage: String) {
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.stat_notify_error)
-            .setContentTitle("Report Export Failed")
+            .setContentTitle(applicationContext.getString(R.string.report_export_failed))
             .setContentText(errorMessage)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setAutoCancel(true)

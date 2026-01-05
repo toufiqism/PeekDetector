@@ -20,6 +20,7 @@ import androidx.camera.core.ImageAnalysis.OUTPUT_IMAGE_FORMAT_YUV_420_888
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
+import com.tofiq.peekdetector.R
 import com.tofiq.peekdetector.core.notification.NotificationHelper
 import com.tofiq.peekdetector.core.receiver.ScreenStateReceiver
 import com.tofiq.peekdetector.core.util.CrashlyticsHelper
@@ -287,7 +288,7 @@ class PeekDetectionService : Service() {
                     setBackgroundColor(Color.argb(150, 0, 0, 0))
                     
                     val textView = android.widget.TextView(this@PeekDetectionService).apply {
-                        text = "⚠️ $faceCount faces detected!\nSomeone might be peeking!"
+                        text = getString(R.string.overlay_faces_detected, faceCount)
                         setTextColor(Color.WHITE)
                         textSize = 24f
                         gravity = Gravity.CENTER
