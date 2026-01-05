@@ -9,9 +9,18 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <!-- Notification permission for Android 13+ (API 33+) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    
+    <!-- Storage permissions for exporting reports to Downloads folder -->
+    <!-- Note: For API 33+, MediaStore API is used which doesn't require explicit permissions -->
+    <!-- READ_MEDIA_* permissions may be needed if reading user files, but not for our app-generated reports -->
     <application
+        android:name=".PeekDetectorApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -21,21 +30,50 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PeekDetector">
         <service
-            android:name=".PeekDetectionService"
+            android:name=".feature.detection.service.PeekDetectionService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="camera" />
+        
+        <service
+            android:name=".feature.panic.service.PanicAlertService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.PeekDetector">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        
+        <activity
+            android:name=".feature.report.ui.ReportActivity"
+            android:exported="false"
+            android:label="Detection Reports"
+            android:theme="@style/Theme.PeekDetector"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
+        </activity>
+        
+        <activity
+            android:name=".feature.settings.ui.SettingsActivity"
+            android:exported="false"
+            android:label="Settings"
+            android:theme="@style/Theme.PeekDetector"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity" />
         </activity>
     </application>
 
