@@ -151,12 +151,12 @@ private fun MainContent() {
     val colors = PeekDetectorTheme.extendedColors
 
     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+        Spacer(modifier = Modifier.height(32.dp))
         Row(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), horizontalArrangement = Arrangement.End) {
             IconButton(onClick = { context.startActivity(Intent(context, SettingsActivity::class.java)) }) {
                 Icon(Icons.Default.Settings, contentDescription = "Settings", tint = colors.textOnGradient, modifier = Modifier.size(28.dp))
             }
         }
-        Spacer(modifier = Modifier.weight(0.5f))
         DetectionCounterCardStateful(context)
         Spacer(modifier = Modifier.height(32.dp))
         ServiceStatusStateful()
@@ -164,7 +164,7 @@ private fun MainContent() {
         ControlButtonsStateful()
         Spacer(modifier = Modifier.height(16.dp))
         ViewReportsButton()
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(16.dp))
         PanicAlertSectionStateful()
         Spacer(modifier = Modifier.height(16.dp))
     }
