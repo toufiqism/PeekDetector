@@ -12,6 +12,7 @@ import android.os.PowerManager
 import android.util.Log
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
+import com.tofiq.peekdetector.core.util.CrashlyticsHelper
 import com.tofiq.peekdetector.feature.panic.PanicAlertConstants
 import com.tofiq.peekdetector.feature.panic.notification.PanicAlertNotificationHelper
 
@@ -109,6 +110,7 @@ class PanicAlertService : Service() {
     
     private fun startSiren() {
         try {
+            CrashlyticsHelper.logPanicAlertState(true)
             audioManager?.let { am ->
                 previousVolume = am.getStreamVolume(PanicAlertConstants.AUDIO_STREAM_TYPE)
                 
@@ -143,18 +145,21 @@ class PanicAlertService : Service() {
                 }
             } else {
                 Log.e(TAG, "Siren audio resource not found")
+                CrashlyticsHelper.log("Siren audio resource not found")
             }
             
             isActive.value = true
             
         } catch (e: Exception) {
             Log.e(TAG, "Error starting siren", e)
+            CrashlyticsHelper.recordException(e, "Error starting panic siren")
             restoreVolume()
         }
     }
     
     private fun stopSiren() {
         try {
+            CrashlyticsHelper.logPanicAlertState(false)
             mediaPlayer?.let { player ->
                 if (player.isPlaying) {
                     player.stop()
@@ -171,6 +176,7 @@ class PanicAlertService : Service() {
             
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping siren", e)
+            CrashlyticsHelper.recordException(e, "Error stopping panic siren")
             isActive.value = false
         }
     }

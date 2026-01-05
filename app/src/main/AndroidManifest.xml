@@ -20,6 +20,7 @@
     <!-- Note: For API 33+, MediaStore API is used which doesn't require explicit permissions -->
     <!-- READ_MEDIA_* permissions may be needed if reading user files, but not for our app-generated reports -->
     <application
+        android:name=".PeekDetectorApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"

@@ -43,7 +43,7 @@ import androidx.core.content.ContextCompat
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import com.google.firebase.crashlytics.FirebaseCrashlytics
+import com.tofiq.peekdetector.core.util.CrashlyticsHelper
 import com.tofiq.peekdetector.data.local.AppDatabase
 import com.tofiq.peekdetector.data.local.settingsDataStore
 import com.tofiq.peekdetector.data.model.ThemeMode
@@ -75,7 +75,6 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.DARK -> true
             }
             PeekDetectorTheme(darkTheme = darkTheme) {
-                FirebaseCrashlytics.getInstance().isCrashlyticsCollectionEnabled = true
                 GradientBackground {
                     Image(
                         painter = painterResource(id = R.drawable.pattern_overlay),

@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.core.content.ContextCompat
 import com.tofiq.peekdetector.core.notification.NotificationHelper
 import com.tofiq.peekdetector.core.receiver.ScreenStateReceiver
+import com.tofiq.peekdetector.core.util.CrashlyticsHelper
 import com.tofiq.peekdetector.core.util.ServiceLifecycleOwner
 import com.tofiq.peekdetector.data.local.AppDatabase
 import com.tofiq.peekdetector.data.local.settingsDataStore
@@ -92,6 +93,7 @@ class PeekDetectionService : Service() {
     override fun onCreate() {
         super.onCreate()
         isRunning.value = true
+        CrashlyticsHelper.logDetectionServiceState(true)
         cameraExecutor = Executors.newSingleThreadExecutor()
         serviceLifecycleOwner.start()
         windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
@@ -242,6 +244,7 @@ class PeekDetectionService : Service() {
                 )
             } catch (exc: Exception) {
                 Log.e(TAG, "Use case binding failed", exc)
+                CrashlyticsHelper.recordException(exc, "Camera binding failed in PeekDetectionService")
             }
         }, ContextCompat.getMainExecutor(this))
     }
@@ -249,6 +252,7 @@ class PeekDetectionService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isRunning.value = false
+        CrashlyticsHelper.logDetectionServiceState(false)
         
         settingsObserverJob?.cancel()
         smartDetectionJob?.cancel()
@@ -326,12 +330,14 @@ class PeekDetectionService : Service() {
     }
 
     private fun saveDetectionToDatabase(numFaces: Int) {
+        CrashlyticsHelper.logFaceDetectionEvent(numFaces)
         serviceScope.launch {
             try {
                 detectionRepository.insertDetection(numFaces)
                 Log.d(TAG, "Detection saved to database: $numFaces faces")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to save detection to database", e)
+                CrashlyticsHelper.recordException(e, "Failed to save detection to database")
             }
         }
     }
