@@ -1,13 +1,23 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Backup rules for Android 11 (API 30) and below.
    See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <!-- Include user settings (DataStore preferences) -->
+    <include domain="file" path="datastore/settings.preferences_pb" />
+    
+    <!-- Include detection history database -->
+    <include domain="database" path="peek_detector_database" />
+    <include domain="database" path="peek_detector_database-shm" />
+    <include domain="database" path="peek_detector_database-wal" />
+    
+    <!-- Exclude cache files -->
+    <exclude domain="cache" path="." />
+    
+    <!-- Exclude no-backup files -->
+    <exclude domain="file" path="no_backup" />
+    
+    <!-- Exclude temporary/generated files -->
+    <exclude domain="external" path="." />
 </full-backup-content>
