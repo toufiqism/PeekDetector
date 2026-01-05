@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1014423616812",
+    "project_id": "peek-detector",
+    "storage_bucket": "peek-detector.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1014423616812:android:261768edb77fd0dc4ec089",
+        "android_client_info": {
+          "package_name": "com.tofiq.peekdetector"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAKKQFNnCBGmhIuEOErjDZQxgkXY9BPpwo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
