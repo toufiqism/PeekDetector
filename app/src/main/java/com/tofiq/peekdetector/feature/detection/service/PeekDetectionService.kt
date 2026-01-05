@@ -7,6 +7,7 @@ import android.graphics.PixelFormat
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.provider.Settings
 import android.util.Log
 import android.util.Size
 import android.view.Gravity
@@ -274,6 +275,12 @@ class PeekDetectionService : Service() {
     }
 
     private fun triggerPeekAlertOverlay(faceCount: Int) {
+        // Check for overlay permission before attempting to show overlay
+        if (!Settings.canDrawOverlays(this)) {
+            Log.w(TAG, "Overlay permission not granted, skipping overlay alert")
+            return
+        }
+        
         Handler(Looper.getMainLooper()).post {
             if (overlayView == null) {
                 overlayView = FrameLayout(this).apply {

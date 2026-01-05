@@ -29,6 +29,8 @@ import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
@@ -148,6 +150,16 @@ fun PeekAppScreen() {
 private fun MainContent() {
     val context = LocalContext.current
     val colors = PeekDetectorTheme.extendedColors
+    var canDrawOverlays by remember {
+        mutableStateOf(
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Settings.canDrawOverlays(context) else true
+        )
+    }
+    
+    // Re-check overlay permission when returning from settings
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        canDrawOverlays = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) Settings.canDrawOverlays(context) else true
+    }
 
     Column(modifier = Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(modifier = Modifier.height(32.dp))
@@ -156,6 +168,13 @@ private fun MainContent() {
                 Icon(Icons.Default.Settings, contentDescription = "Settings", tint = colors.textOnGradient, modifier = Modifier.size(28.dp))
             }
         }
+        
+        // Show overlay permission warning if not granted
+        if (!canDrawOverlays) {
+            OverlayPermissionBanner(context)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+        
         DetectionCounterCardStateful(context)
         Spacer(modifier = Modifier.height(32.dp))
         ServiceStatusStateful()
@@ -349,5 +368,37 @@ fun NotificationPermissionRequestUI(launcher: ActivityResultLauncher<String>, on
 fun DefaultPreview() {
     PeekDetectorTheme {
         GradientBackground { PeekAppScreen() }
+    }
+}
+
+@Composable
+private fun OverlayPermissionBanner(context: Context) {
+    val colors = PeekDetectorTheme.extendedColors
+    GlassCard(modifier = Modifier.fillMaxWidth(0.9f), alpha = 0.15f) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "⚠️ Overlay Permission Required",
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.warning,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Screen overlay alerts won't work without this permission.",
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.textOnGradient.copy(alpha = 0.8f)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            TextButton(
+                onClick = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:${context.packageName}"))
+                    )
+                }
+            ) {
+                Text("Grant Permission", style = MaterialTheme.typography.labelMedium, color = colors.warning)
+            }
+        }
     }
 }
